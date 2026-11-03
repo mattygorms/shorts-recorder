@@ -19,22 +19,31 @@ FIRST-RUN CLICKS
 
 RECORDING (whole script, one take)
 - Pick a script in the top bar (or Paste one). It shows as a scrollable
-  teleprompter. Press Space (or the red button) to record, Space to stop.
+  teleprompter. Press R (or the red button) to record, R to stop.
 - The waveform draws live while you talk. After you stop, the start and end
   silence is auto-trimmed and you see the whole take with a time ruler.
 
 EDITING THE TAKE
-  Click            place the cursor          Drag     select a region
+  Click            place the playhead        Drag     select a region
   Shift+click      extend the selection      Esc      clear selection
-  Del/Backspace    cut the selection (flubbed sentence)
-  Space            record again:
+  Space            play from the playhead / pause (plays the selection if any)
+  R                record again, in the same take (waveform stays on screen):
                      - with a selection: replaces just that region
-                     - with the cursor mid-take: replaces from the cursor to the end
-                     - with the cursor at the end: keeps going (appends)
-  Enter or P       play from cursor (or play the selection)
-  Ctrl+Z / Ctrl+Y  undo / redo (Ctrl+Shift+Z also redoes)
-  T  auto-trim ends    C  crop to selection    Home/End, arrows  move cursor
-  "New take" discards everything and starts over.
+                     - with the playhead mid-take: replaces from there to the end
+                     - with the playhead at the end: keeps going (appends)
+  Pre-roll         button: plays 2 s before the playhead, then starts recording
+  Del/Backspace    cut the selection (flubbed sentence)
+  Ctrl+Z / Ctrl+Y  undo / redo audio (Ctrl+Shift+Z also redoes)
+  T  auto-trim ends    C  crop to selection    Home/End, arrows  move playhead
+  ?  shortcuts popover (also the ? button, top right)
+  "New take" asks first, then discards everything and starts over.
+
+EDITING THE SCRIPT
+  Click Edit (or press E, or double-click the text) and type: delete a
+  sentence, rename something, etc. Changes autosave to the file in
+  scripts\ ("Saved" shows next to the title). Esc or Done to finish.
+  Ctrl+Z while editing undoes text only, never audio. Pasted scripts keep
+  edits for the session. Export writes the edited text to transcript-ref.txt.
 
 EXPORT
   MattyGorm Shorts\<YYYY-MM-DD>-<slug>\
