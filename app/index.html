@@ -1,0 +1,220 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Shorts Recorder</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root{--bg:#0c0d10;--s1:#131519;--s2:#1a1d23;--ln:#25282f;--tx:#eceef2;--mu:#7c8190;--dim:#4a4f5b;--rec:#ff4757;--ac:#6c8cff;--wave:#8fa6ff;--ok:#38d39f}
+*{box-sizing:border-box}html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.4 "Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;display:grid;grid-template-rows:56px 1fr auto;-webkit-font-smoothing:antialiased;user-select:none}
+button,select,input,textarea{font:inherit;color:inherit}
+.bar{display:flex;align-items:center;gap:10px;padding:0 18px;border-bottom:1px solid var(--ln);background:var(--s1)}
+.brand{display:flex;align-items:center;gap:9px;font-weight:600;letter-spacing:.01em;margin-right:8px}.brand i{width:10px;height:10px;border-radius:50%;background:var(--rec);box-shadow:0 0 12px #ff475788}
+.sep{width:1px;height:22px;background:var(--ln);margin:0 4px}.grow{flex:1}
+.chip,.sel{height:32px;border-radius:8px;border:1px solid transparent;background:transparent;padding:0 10px;display:inline-flex;align-items:center;gap:7px;cursor:pointer;color:var(--mu);white-space:nowrap;transition:.12s}
+.chip:hover,.sel:hover{background:var(--s2);color:var(--tx)}.chip b{color:var(--tx);font-weight:500;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.sel{appearance:none;max-width:240px;padding-right:26px;background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%237c8190' fill='none' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 9px center}
+.sel option{background:var(--s2);color:var(--tx)}
+.ver{font-size:12px;color:var(--dim)}.badge{font-size:11px;font-weight:600;color:#0c0d10;background:var(--ok);border-radius:99px;padding:2px 8px;display:none}.upd.has .badge{display:inline}
+svg{width:16px;height:16px;flex:none}
+#prompt{overflow:auto;-webkit-mask-image:linear-gradient(#000 85%,transparent);mask-image:linear-gradient(#000 85%,transparent);padding:56px 8vw 40px;scroll-behavior:smooth}
+#prompt .in{max-width:880px;margin:0 auto;font-size:clamp(24px,2.4vw,34px);line-height:1.6;font-weight:450;letter-spacing:-.005em;color:#dfe2ea}
+#prompt p{margin:0 0 1em}#prompt .t{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--mu);margin-bottom:22px;font-weight:600}
+#prompt .empty{color:var(--mu);font-size:20px;text-align:center;margin-top:12vh;line-height:1.8}
+#prompt .empty b{color:var(--tx)}
+.dock{border-top:1px solid var(--ln);background:var(--s1);padding:14px 22px 16px}
+.wv{position:relative;height:150px;border-radius:12px;background:var(--bg);border:1px solid var(--ln);overflow:hidden}
+canvas{display:block;width:100%;height:100%;cursor:text}
+.tr{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;margin-top:14px}
+.time{font:500 15px/1 "Cascadia Mono",Consolas,ui-monospace,monospace;color:var(--tx);letter-spacing:.02em}.time span{color:var(--dim)}
+.hint{font-size:12px;color:var(--mu);margin-top:5px;min-height:16px}
+.mid{display:flex;align-items:center;gap:18px}
+.rb{width:64px;height:64px;border-radius:50%;border:2px solid #ff475755;background:transparent;display:grid;place-items:center;cursor:pointer;transition:.15s}
+.rb i{width:26px;height:26px;border-radius:50%;background:var(--rec);transition:.15s}.rb:hover{border-color:var(--rec)}
+.rb.on{border-color:var(--rec);box-shadow:0 0 0 6px #ff47571a}.rb.on i{width:22px;height:22px;border-radius:5px;animation:pl 1.2s infinite}
+@keyframes pl{50%{opacity:.6}}
+.ib{width:40px;height:40px;border-radius:50%;border:1px solid var(--ln);background:var(--s2);display:grid;place-items:center;cursor:pointer;color:var(--tx)}.ib:hover{border-color:var(--dim)}
+.ib svg{width:18px;height:18px}
+.right{display:flex;justify-content:flex-end;gap:6px;align-items:center}
+.tb{height:34px;border-radius:8px;border:none;background:transparent;color:var(--mu);padding:0 10px;display:inline-flex;gap:6px;align-items:center;cursor:pointer}.tb:hover:not(:disabled){background:var(--s2);color:var(--tx)}.tb:disabled{opacity:.35;cursor:default}
+.ex{height:36px;border-radius:9px;border:none;background:var(--tx);color:#0c0d10;font-weight:600;padding:0 16px;margin-left:8px;cursor:pointer}.ex:disabled{opacity:.3;cursor:default}
+.lvl{width:4px;height:22px;border-radius:2px;background:var(--ln);position:relative;overflow:hidden}.lvl i{position:absolute;left:0;right:0;bottom:0;background:var(--ok);height:0}
+.toast{position:fixed;left:50%;bottom:250px;transform:translateX(-50%);background:var(--s2);border:1px solid var(--ln);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;box-shadow:0 10px 30px #0008}.toast.on{opacity:1}
+dialog{background:var(--s1);color:var(--tx);border:1px solid var(--ln);border-radius:14px;width:min(680px,92vw);padding:22px}dialog::backdrop{background:#000a}
+dialog h3{margin:0 0 14px;font-weight:600}dialog input,dialog textarea{width:100%;background:var(--bg);border:1px solid var(--ln);border-radius:8px;padding:10px 12px;margin-bottom:10px;outline:none;user-select:text}dialog textarea{height:260px;resize:vertical}
+dialog .r{display:flex;justify-content:flex-end;gap:8px}dialog button{height:34px;border-radius:8px;border:1px solid var(--ln);background:var(--s2);padding:0 14px;cursor:pointer}dialog button.p{background:var(--tx);color:#0c0d10;border-color:var(--tx);font-weight:600}
+</style></head><body>
+<header class="bar">
+ <div class="brand"><i></i>Shorts Recorder</div><div class="sep"></div>
+ <select class="sel" id="scriptSel" title="Script"><option value="">Choose a script…</option></select>
+ <button class="chip" id="pasteBtn" title="Paste a script"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>Paste</button>
+ <div class="grow"></div>
+ <div class="lvl" title="Input level"><i id="lvl"></i></div>
+ <select class="sel" id="micSel" title="Microphone"></select>
+ <button class="chip" id="rootBtn" title="Root folder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 7a2 2 0 012-2h4l2 2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"/></svg><b id="rootName">Choose folder</b></button>
+ <div class="sep"></div>
+ <button class="chip upd" id="updBtn" title="Check for updates"><span class="ver" id="ver"></span><span class="badge" id="badge">Update</span></button>
+</header>
+<main id="prompt"><div class="in" id="pin"></div></main>
+<section class="dock">
+ <div class="wv"><canvas id="cv"></canvas></div>
+ <div class="tr">
+  <div><div class="time" id="time">00:00.0 <span>/ 00:00.0</span></div><div class="hint" id="hint"></div></div>
+  <div class="mid">
+   <button class="ib" id="playBtn" title="Play from cursor (Enter)"><svg id="playIco" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></button>
+   <button class="rb" id="recBtn" title="Record (Space)"><i></i></button>
+   <button class="ib" id="undoBtn" title="Undo (Ctrl+Z)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 010 11H11"/></svg></button>
+  </div>
+  <div class="right">
+   <button class="tb" id="cutBtn" title="Delete selection (Del)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M20 4L8.1 15.9M14.5 14.5L20 20M8.1 8.1L12 12"/></svg>Cut</button>
+   <button class="tb" id="cropBtn" title="Keep only the selection (C)">Crop</button>
+   <button class="tb" id="trimBtn" title="Auto-trim silence at the ends (T)">Auto-trim</button>
+   <button class="tb" id="newBtn" title="Discard and start a new take">New take</button>
+   <button class="ex" id="exportBtn">Export</button>
+  </div>
+ </div>
+</section>
+<div class="toast" id="toast"></div>
+<dialog id="dlg"><h3>Paste a script</h3><input id="pTitle" placeholder="Title"><textarea id="pText" placeholder="Script text"></textarea><div class="r"><button onclick="dlg.close()">Cancel</button><button class="p" id="pOk">Use script</button></div></dialog>
+<script>
+const APP_VERSION='2.0.0';
+const SR=48000,$=id=>document.getElementById(id);
+const S={root:null,script:null,stream:null,buf:new Float32Array(0),raw:[],undo:[],redo:[],cur:0,sel:null,rec:null,play:null,dirty:false};
+const ac=new AudioContext({sampleRate:SR,latencyHint:'interactive'});
+const fmt=s=>{s=Math.max(0,s);const m=Math.floor(s/60),r=s-m*60;return String(m).padStart(2,'0')+':'+r.toFixed(1).padStart(4,'0')};
+let tt;const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)};
+$('ver').textContent='v'+APP_VERSION;
+// ---------- storage ----------
+const idb=(mode,k,v)=>new Promise((res,rej)=>{const o=indexedDB.open('shortsrec',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');o.onerror=rej;o.onsuccess=()=>{const st=o.result.transaction('kv',mode).objectStore('kv');const r=mode=='readonly'?st.get(k):st.put(v,k);r.onsuccess=()=>res(r.result);r.onerror=rej}});
+const slugify=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'short';
+function parseScript(name,text){let o;name=name.toLowerCase();
+ if(name.endsWith('.json')){const j=JSON.parse(text);o={title:j.title||name,slug:j.slug,text:j.script||j.text||(j.lines||[]).join('\n')}}
+ else{const m=text.replace(/^\uFEFF/,'').split(/\r?\n/);let title=name.replace(/\.txt$/,''),slug=null,i=0,hdr=false;
+  for(;i<m.length;i++){const l=m[i];let r;if(r=l.match(/^title:\s*(.*)/i)){title=r[1].trim();hdr=true}else if(r=l.match(/^slug:\s*(.*)/i)){slug=r[1].trim();hdr=true}else if(/^-{3,}\s*$/.test(l)){i++;break}else if(l.trim()==='')continue;else break}
+  o={title,slug,text:m.slice(i).join('\n').trim()}}
+ o.slug=slugify(o.slug||o.title);return o}
+async function perm(h){if(await h.queryPermission({mode:'readwrite'})=='granted')return true;return (await h.requestPermission({mode:'readwrite'}))=='granted'}
+async function setRoot(h){S.root=h;$('rootName').textContent=h.name||'Folder';await idb('readwrite','root',h);await loadList()}
+$('rootBtn').onclick=async()=>{if(!window.showDirectoryPicker)return toast('Open this in Edge or Chrome via the launcher');try{await setRoot(await showDirectoryPicker({id:'shortsroot',mode:'readwrite',startIn:'documents'}))}catch(e){}};
+async function loadList(){const sel=$('scriptSel');sel.length=1;if(!S.root||!await perm(S.root))return;
+ const sd=await S.root.getDirectoryHandle('scripts',{create:true});const n=[];for await(const [k,h] of sd.entries())if(h.kind=='file'&&/\.(txt|json)$/i.test(k))n.push(k);n.sort();
+ for(const k of n){const o=new Option(k.replace(/\.(txt|json)$/i,''),k);sel.add(o)}
+ const last=localStorage.lastScript;if(last&&n.includes(last)&&!S.script){sel.value=last;sel.onchange()}}
+$('scriptSel').onchange=async()=>{const n=$('scriptSel').value;if(!n)return;try{const f=await (await (await S.root.getDirectoryHandle('scripts')).getFileHandle(n)).getFile();useScript(parseScript(n,await f.text()));localStorage.lastScript=n}catch(e){toast('Could not read '+n)}};
+$('pasteBtn').onclick=()=>$('dlg').showModal();
+$('pOk').onclick=()=>{const t=$('pText').value.trim();if(!t)return;const ti=$('pTitle').value.trim()||'Pasted script';useScript({title:ti,slug:slugify(ti),text:t});$('dlg').close()};
+function useScript(o){if(S.dirty&&!confirm('Discard the current take?'))return;S.script=o;resetTake();const pin=$('pin');pin.innerHTML='';const t=document.createElement('div');t.className='t';t.textContent=o.title;pin.appendChild(t);
+ for(const p of o.text.split(/\n\s*\n/)){const e=document.createElement('p');e.textContent=p.replace(/\s*\n\s*/g,' ').trim();if(e.textContent)pin.appendChild(e)}$('prompt').scrollTop=0;ui()}
+function emptyPrompt(){$('pin').innerHTML='<div class="empty">'+(S.root?'Pick a script from the top bar,<br>or <b>Paste</b> one.':'Choose your <b>MattyGorm Shorts</b> folder to start.<br>Scripts are read from its <b>scripts</b> folder.')+'</div>'}
+// ---------- mic ----------
+async function listMics(){const d=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind=='audioinput');const s=$('micSel');s.innerHTML='';for(const x of d)s.add(new Option(x.label||'Microphone',x.deviceId));const k=localStorage.mic;if(k&&d.some(x=>x.deviceId==k))s.value=k}
+let meterNode;
+async function openMic(){if(S.stream)S.stream.getTracks().forEach(t=>t.stop());const id=$('micSel').value||localStorage.mic;
+ S.stream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:id?{exact:id}:undefined,echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
+ await listMics();const sid=S.stream.getAudioTracks()[0].getSettings().deviceId;if(sid){$('micSel').value=sid;localStorage.mic=sid}
+ await ensureWorklet();if(S.srcNode)S.srcNode.disconnect();S.srcNode=ac.createMediaStreamSource(S.stream);S.srcNode.connect(S.cap)}
+$('micSel').onchange=()=>{localStorage.mic=$('micSel').value;openMic().catch(e=>toast('Mic error: '+e.message))};
+// ---------- lossless capture (AudioWorklet, raw float PCM) ----------
+const WK=`class C extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(1024);this.n=0}process(i){const c=i[0]&&i[0][0];if(c){let pk=0;for(let k=0;k<c.length;k++){this.b[this.n++]=c[k];const a=c[k]<0?-c[k]:c[k];if(a>pk)pk=a;if(this.n==1024){this.port.postMessage(this.b);this.b=new Float32Array(1024);this.n=0}}}return true}}registerProcessor('cap',C)`;
+async function ensureWorklet(){if(S.cap)return;await ac.audioWorklet.addModule(URL.createObjectURL(new Blob([WK],{type:'text/javascript'})));S.cap=new AudioWorkletNode(ac,'cap',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1]});const g=ac.createGain();g.gain.value=0;S.cap.connect(g).connect(ac.destination);
+ S.cap.port.onmessage=e=>{const d=e.data;let pk=0;for(let i=0;i<d.length;i++){const a=Math.abs(d[i]);if(a>pk)pk=a}level=Math.max(level*.85,pk);if(S.rec){S.rec.chunks.push(d);S.rec.n+=d.length;livePeaks(d)}}}
+let level=0;(function m(){$('lvl').style.height=Math.min(100,level*130)+'%';$('lvl').style.background=level>.97?'var(--rec)':'var(--ok)';level*=.96;requestAnimationFrame(m)})();
+// ---------- record / punch-in ----------
+const COL=480; // samples per live column (10 ms)
+function livePeaks(d){const r=S.rec;for(let i=0;i<d.length;i++){const v=d[i];if(v<r.mn)r.mn=v;if(v>r.mx)r.mx=v;if(++r.k==COL){r.peaks.push(r.mn,r.mx);r.mn=1;r.mx=-1;r.k=0}}}
+async function startRec(){if(!S.script)return toast('Choose a script first');try{if(!S.stream)await openMic()}catch(e){return toast('Microphone blocked: '+e.message)}
+ await ac.resume();stopPlay();
+ let a=S.buf.length,b=S.buf.length,mode='new';if(S.buf.length){if(S.sel){a=S.sel[0];b=S.sel[1];mode='replace'}else{a=b=S.cur;mode=S.cur>=S.buf.length?'append':'punch'}if(mode=='punch')b=S.buf.length}
+ S.rec={chunks:[],n:0,peaks:[],mn:1,mx:-1,k:0,a,b,mode,t0:performance.now()};ui();drawLoop()}
+function stopRec(){const r=S.rec;if(!r)return;S.rec=null;const take=new Float32Array(r.n);let o=0;for(const c of r.chunks){take.set(c,o);o+=c.length}
+ S.raw.push(take);if(!take.length){ui();return}
+ pushUndo();const pre=S.buf.subarray(0,r.a),post=S.buf.subarray(r.b);const nb=new Float32Array(pre.length+take.length+post.length);nb.set(pre);nb.set(take,pre.length);nb.set(post,pre.length+take.length);
+ if(pre.length)xfade(nb,pre.length);if(post.length)xfade(nb,pre.length+take.length);
+ S.buf=nb;S.sel=null;S.cur=pre.length+take.length;S.dirty=true;
+ if(r.mode=='new')autoTrim(false);
+ toast({new:'Take recorded',append:'Added to the end',punch:'Re-recorded from cursor to end',replace:'Selection replaced'}[r.mode]+' · '+fmt(take.length/SR));rebuild();ui()}
+function xfade(d,at){const n=Math.min(144,at,d.length-at);for(let i=0;i<n;i++){const g=i/n;d[at-1-i]*=g;d[at+i]*=g}} // 3 ms dip at joins, no clicks
+// ---------- edit ops ----------
+function pushUndo(){S.undo.push({buf:S.buf,cur:S.cur});if(S.undo.length>20)S.undo.shift();S.redo=[]}
+function undo(){if(S.rec||!S.undo.length)return;S.redo.push({buf:S.buf,cur:S.cur});const u=S.undo.pop();S.buf=u.buf;S.cur=Math.min(u.cur,u.buf.length);S.sel=null;stopPlay();rebuild();ui();toast('Undo')}
+function redoOp(){if(S.rec||!S.redo.length)return;S.undo.push({buf:S.buf,cur:S.cur});const u=S.redo.pop();S.buf=u.buf;S.cur=Math.min(u.cur,u.buf.length);S.sel=null;rebuild();ui();toast('Redo')}
+function cut(){if(!S.sel||S.rec)return;const[a,b]=S.sel;pushUndo();const nb=new Float32Array(S.buf.length-(b-a));nb.set(S.buf.subarray(0,a));nb.set(S.buf.subarray(b),a);if(a>0&&a<nb.length)xfade(nb,a);S.buf=nb;S.cur=a;S.sel=null;stopPlay();rebuild();ui();toast('Cut '+fmt((b-a)/SR))}
+function crop(){if(!S.sel||S.rec)return;const[a,b]=S.sel;pushUndo();S.buf=S.buf.slice(a,b);S.cur=0;S.sel=null;stopPlay();rebuild();ui();toast('Cropped to selection')}
+function autoTrim(undoable=true){const d=S.buf;if(!d.length)return;const w=480;let pk=0;for(let i=0;i<d.length;i++){const a=Math.abs(d[i]);if(a>pk)pk=a}const th=Math.max(.006,pk*.06);
+ const rms=i=>{let s=0;for(let j=i;j<i+w&&j<d.length;j++)s+=d[j]*d[j];return Math.sqrt(s/w)};let s=0,e=d.length;for(let i=0;i<d.length;i+=w)if(rms(i)>th){s=i;break}for(let i=d.length-w;i>0;i-=w)if(rms(i)>th){e=i+w;break}
+ s=Math.max(0,s-Math.round(.12*SR));e=Math.min(d.length,e+Math.round(.25*SR));if(e<=s||(s==0&&e==d.length)){if(undoable)toast('Nothing to trim');return}
+ if(undoable)pushUndo();S.buf=d.slice(s,e);S.cur=Math.max(0,Math.min(S.buf.length,S.cur-s));S.sel=null;rebuild();ui();if(undoable)toast('Trimmed '+fmt((s+d.length-e)/SR)+' of silence')}
+function resetTake(){S.buf=new Float32Array(0);S.raw=[];S.undo=[];S.redo=[];S.cur=0;S.sel=null;S.dirty=false;stopPlay();rebuild()}
+$('newBtn').onclick=()=>{if(S.buf.length&&!confirm('Discard this take and start over?'))return;resetTake();ui()};
+// ---------- playback ----------
+function stopPlay(){if(S.play){S.play.src.onended=null;try{S.play.src.stop()}catch(e){}S.play=null;ui()}}
+function play(){if(S.rec)return;if(S.play){const p=pos();stopPlay();S.cur=p;ui();return}if(!S.buf.length)return;ac.resume();
+ let a=S.sel?S.sel[0]:S.cur,b=S.sel?S.sel[1]:S.buf.length;if(a>=b-100){a=0;b=S.buf.length}const seg=S.buf.subarray(a,b);const ab=ac.createBuffer(1,seg.length,SR);ab.copyToChannel(seg,0);
+ const src=ac.createBufferSource();src.buffer=ab;src.connect(ac.destination);src.onended=()=>{S.play=null;ui()};src.start();S.play={src,a,b,t0:ac.currentTime};ui();drawLoop()}
+const pos=()=>S.play?Math.min(S.play.b,S.play.a+Math.round((ac.currentTime-S.play.t0)*SR)):S.cur;
+// ---------- waveform ----------
+const cv=$('cv'),cx=cv.getContext('2d');let W=0,H=0,dpr=1,img=null;
+function size(){dpr=devicePixelRatio||1;const r=cv.getBoundingClientRect();W=Math.round(r.width*dpr);H=Math.round(r.height*dpr);cv.width=W;cv.height=H;rebuild();draw()}
+new ResizeObserver(size).observe(cv);
+const RU=22; // ruler height (css px)
+function rebuild(){if(!W)return;img=document.createElement('canvas');img.width=W;img.height=H;const g=img.getContext('2d');const d=S.buf,N=d.length;if(!N)return;
+ const top=RU*dpr,h=H-top,mid=top+h/2,spp=N/W;g.fillStyle=getComputedStyle(document.body).getPropertyValue('--wave');
+ for(let x=0;x<W;x++){let mn=1,mx=-1;const i0=Math.floor(x*spp),i1=Math.max(i0+1,Math.floor((x+1)*spp));for(let i=i0;i<i1&&i<N;i++){const v=d[i];if(v<mn)mn=v;if(v>mx)mx=v}if(mx<mn)continue;g.fillRect(x,mid-mx*h*.48,1,Math.max(dpr,(mx-mn)*h*.48))}}
+function ruler(dur,x0,pxs){if(!(pxs>0)||!isFinite(pxs))return;cx.fillStyle='#131519';cx.fillRect(0,0,W,RU*dpr);cx.fillStyle='#25282f';cx.fillRect(0,RU*dpr-1,W,1);
+ const steps=[.5,1,2,5,10,15,30,60];const want=90*dpr/pxs;const st=steps.find(s=>s>=want)||120;cx.font=(11*dpr)+'px Segoe UI,system-ui';cx.textBaseline='middle';
+ for(let t=Math.ceil(x0/st)*st;;t+=st){const x=(t-x0)*pxs;if(x>W)break;cx.fillStyle='#3a3e48';cx.fillRect(Math.round(x),RU*dpr-6*dpr,1,6*dpr);cx.fillStyle='#7c8190';cx.fillText((m=>Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0')+(st<1?'.'+Math.round((t%1)*10):''))(),x+4*dpr,RU*dpr/2)}
+ cx.fillStyle='#1d2026';cx.fillRect(0,RU*dpr+(H-RU*dpr)/2,W,1)}
+function draw(){if(!W||!H)return;cx.clearRect(0,0,W,H);const r=S.rec,N=S.buf.length;
+ if(r){const pxs=100*dpr/dpr*dpr; // 1 live column = 10ms = 1 device px *dpr
+  const colW=dpr,cols=r.peaks.length/2,vis=Math.floor(W/colW),start=Math.max(0,cols-vis);const tOff=r.a/SR;
+  ruler(tOff+start*COL/SR,tOff+start*COL/SR,colW*SR/COL);const top=RU*dpr,h=H-top,mid=top+h/2;cx.fillStyle='#ff6b78';
+  for(let c=start;c<cols;c++){const mn=r.peaks[2*c],mx=r.peaks[2*c+1];cx.fillRect((c-start)*colW,mid-mx*h*.48,colW,Math.max(dpr,(mx-mn)*h*.48))}
+  const x=(cols-start)*colW;cx.fillStyle='#ff4757';cx.fillRect(x,top,2*dpr,h);return}
+ if(!N){ruler(0,0,W/30);cx.fillStyle='#4a4f5b';cx.font=(13*dpr)+'px Segoe UI,system-ui';cx.textAlign='center';cx.fillText(S.script?'Press Space or the red button to record the whole script':'No take yet',W/2,RU*dpr+(H-RU*dpr)/2-12*dpr);cx.textAlign='left';return}
+ const pxs=W/(N/SR);ruler(0,0,pxs);if(img)cx.drawImage(img,0,0);const X=s=>s/N*W;
+ if(S.sel){cx.fillStyle='#6c8cff33';cx.fillRect(X(S.sel[0]),RU*dpr,X(S.sel[1])-X(S.sel[0]),H);cx.fillStyle='#6c8cff';cx.fillRect(X(S.sel[0]),RU*dpr,dpr,H);cx.fillRect(X(S.sel[1]),RU*dpr,dpr,H)}
+ const p=X(pos());cx.fillStyle=S.play?'#ffffff':'#eceef2';cx.fillRect(Math.round(p)-dpr/2,0,Math.max(1,1.5*dpr),H);cx.beginPath();cx.moveTo(p-5*dpr,0);cx.lineTo(p+5*dpr,0);cx.lineTo(p,7*dpr);cx.fill()}
+let looping=false;function drawLoop(){if(looping)return;looping=true;(function f(){draw();updTime();if(S.rec||S.play)requestAnimationFrame(f);else looping=false})()}
+let drag=null;const sAt=e=>{const r=cv.getBoundingClientRect();return Math.round(Math.max(0,Math.min(1,(e.clientX-r.left)/r.width))*S.buf.length)};
+cv.onpointerdown=e=>{if(S.rec||!S.buf.length)return;stopPlay();cv.setPointerCapture(e.pointerId);const s=sAt(e);
+ if(e.shiftKey){const a=S.sel?S.sel[0]:S.cur;drag={a:Math.min(a,s)};S.sel=[Math.min(a,s),Math.max(a,s)]}else{drag={a:s,x:e.clientX};S.sel=null;S.cur=s}ui()};
+cv.onpointermove=e=>{if(!drag)return;const s=sAt(e);if(drag.x!==undefined&&Math.abs(e.clientX-drag.x)<4)return;drag.x=undefined;S.sel=[Math.min(drag.a,s),Math.max(drag.a,s)];if(S.sel[1]-S.sel[0]<SR*.02)S.sel=null;else S.cur=S.sel[0];ui()};
+cv.onpointerup=()=>{drag=null};
+// ---------- ui ----------
+function updTime(){const N=S.buf.length;const p=S.rec?(S.rec.a+S.rec.n):pos();$('time').innerHTML=fmt(p/SR)+' <span>/ '+fmt((S.rec?S.rec.a+S.rec.n+(S.buf.length-S.rec.b):N)/SR)+'</span>'}
+function ui(){const r=!!S.rec,N=S.buf.length;$('recBtn').classList.toggle('on',r);$('recBtn').title=r?'Stop (Space)':'Record (Space)';
+ $('playIco').innerHTML=S.play?'<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>':'<path d="M8 5v14l11-7z"/>';
+ for(const[id,on] of [['cutBtn',S.sel],['cropBtn',S.sel],['trimBtn',N],['newBtn',N],['exportBtn',N&&S.script],['undoBtn',S.undo.length],['playBtn',N]])$(id).disabled=r||!on;
+ let h='';if(r)h={new:'Recording whole script…',append:'Recording — appending to the end',punch:'Punch-in — replacing from '+fmt(S.rec.a/SR)+' to end',replace:'Replacing selection '+fmt(S.rec.a/SR)+'–'+fmt(S.rec.b/SR)}[S.rec.mode]+' · Space to stop';
+ else if(!S.script)h='';else if(!N)h='Space to record';else if(S.sel)h='Selection '+fmt((S.sel[1]-S.sel[0])/SR)+' · Del to cut · Space to re-record it';else h=S.cur>=N?'Space to keep recording at the end':'Space to re-record from the cursor to the end';
+ $('hint').textContent=h;if(!S.script)emptyPrompt();updTime();if(!looping)draw()}
+$('recBtn').onclick=()=>S.rec?stopRec():startRec();$('playBtn').onclick=play;$('undoBtn').onclick=undo;$('cutBtn').onclick=cut;$('cropBtn').onclick=crop;$('trimBtn').onclick=()=>autoTrim(true);
+addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select,dialog'))return;const k=e.key,c=e.ctrlKey||e.metaKey;
+ if(k==' '){e.preventDefault();S.rec?stopRec():startRec()}else if(c&&(k=='z'||k=='Z')){e.preventDefault();e.shiftKey?redoOp():undo()}else if(c&&(k=='y'||k=='Y')){e.preventDefault();redoOp()}
+ else if(k=='Delete'||k=='Backspace'){e.preventDefault();cut()}else if(k=='Enter'||k=='p'||k=='P'){e.preventDefault();play()}else if(k=='Escape'){S.sel=null;ui()}
+ else if((k=='t'||k=='T')&&!c)autoTrim(true);else if((k=='c'||k=='C')&&!c)crop();else if(k=='Home'){S.cur=0;S.sel=null;ui()}else if(k=='End'){S.cur=S.buf.length;S.sel=null;ui()}
+ else if(k=='ArrowLeft'||k=='ArrowRight'){e.preventDefault();stopPlay();S.sel=null;S.cur=Math.max(0,Math.min(S.buf.length,S.cur+(k=='ArrowLeft'?-1:1)*SR*(e.shiftKey?5:1)));ui()}});
+addEventListener('beforeunload',e=>{if(S.dirty){e.preventDefault();e.returnValue=''}});
+// ---------- export ----------
+function wav(f){const n=f.length,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+ w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,SR,true);v.setUint32(28,SR*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
+ for(let i=0;i<n;i++){const s=Math.max(-1,Math.min(1,f[i]));v.setInt16(44+i*2,s<0?s*32768:s*32767,true)}return new Blob([b],{type:'audio/wav'})}
+async function put(dir,name,blob){const w=await (await dir.getFileHandle(name,{create:true})).createWritable();await w.write(blob);await w.close()}
+function rawTake(){const L=S.raw.reduce((a,t)=>a+t.length,0),o=new Float32Array(L);let p=0;for(const t of S.raw){o.set(t,p);p+=t.length}return o}
+async function doExport(){if(!S.buf.length||!S.script)return;if(!S.root)return toast('Choose your folder first');if(!await perm(S.root))return toast('Folder access was not allowed');
+ const d=new Date(),ds=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'),slug=S.script.slug,name=ds+'-'+slug;
+ const dir=await S.root.getDirectoryHandle(name,{create:true});const out=S.buf.slice();const f=Math.min(240,out.length>>1);for(let i=0;i<f;i++){out[i]*=i/f;out[out.length-1-i]*=i/f}
+ await put(dir,slug+'.wav',wav(out));await put(dir,slug+'-raw.wav',wav(rawTake()));await put(dir,'transcript-ref.txt',new Blob([S.script.text.replace(/\r?\n/g,'\r\n')+'\r\n'],{type:'text/plain'}));
+ S.dirty=false;toast('Saved '+name+'\\'+slug+'.wav ('+fmt(out.length/SR)+')');return name}
+$('exportBtn').onclick=()=>doExport().catch(e=>toast('Export failed: '+e.message));
+// ---------- updates ----------
+async function api(p,opt){const r=await fetch(p,Object.assign({cache:'no-store',headers:{'X-Shorts-Recorder':'1'}},opt));if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+let latest=null;
+async function checkUpdate(manual){const b=$('updBtn');try{const j=await api('/api/version');if(j.error)throw new Error(j.error);latest=j.updateAvailable?j.latest:null;b.classList.toggle('has',!!latest);$('badge').textContent='Update '+(latest||'');b.title=latest?'Update available: v'+latest+' — click to install':'Up to date';if(manual&&!latest)toast('You’re on the latest version (v'+APP_VERSION+')')}
+ catch(e){latest=null;b.classList.remove('has');b.title='Couldn’t check for updates';if(manual)toast('Couldn’t check for updates')}}
+$('updBtn').onclick=async()=>{if(!latest)return checkUpdate(true);if(S.dirty&&!confirm('You have an unexported take. Updating reloads the app and it will be lost. Continue?'))return;
+ toast('Updating to v'+latest+'…');try{const r=await api('/api/update',{method:'POST',body:'{}'});if(!r.ok)throw new Error(r.error||'failed');S.dirty=false;
+  for(let i=0;i<40;i++){await new Promise(z=>setTimeout(z,500));try{const v=await api('/api/version?local=1');if(v.version==r.version){location.reload();return}}catch(e){}}location.reload()}
+ catch(e){toast('Update failed: '+e.message+' (nothing was changed)')}};
+// ---------- boot ----------
+ui();(async()=>{try{const h=await idb('readonly','root');if(h){S.root=h;$('rootName').textContent=h.name;if(await h.queryPermission({mode:'readwrite'})=='granted')await loadList();else{toast('Click anywhere to re-allow folder access');addEventListener('pointerdown',async()=>{if(await perm(S.root))loadList()},{once:true,capture:true})}}}catch(e){}
+ try{await openMic()}catch(e){toast('Microphone blocked: '+e.message)}ui();checkUpdate(false)})();
+window.__t={S,setRoot,useScript,startRec,stopRec,cut,undo,redoOp,crop,autoTrim,doExport,play,ui};
+</script></body></html>
