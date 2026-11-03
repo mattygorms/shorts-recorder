@@ -52,6 +52,14 @@ EXPORT
     transcript-ref.txt   the script text
   Drag <slug>.wav into Grok Bot.
 
+MANAGING SCRIPTS
+  Refresh button (next to the script menu) re-reads scripts\ without
+  reloading; the list also refreshes when you switch back to the window.
+  Trash button (or Del while the script menu is focused) deletes the script:
+  it is MOVED to scripts\_deleted\, never erased. Undo in the popup for 6 s,
+  or the restore button (shows when anything is deleted) to bring it back.
+  Your current take is kept. Exports/recordings are never touched.
+
 SCRIPT FILES (MattyGorm Shorts\scripts\)
   .txt:  title: My Title / slug: my-slug / --- / script text
   .json: {"title": "...", "slug": "...", "script": "..."}

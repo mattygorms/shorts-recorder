@@ -36,7 +36,8 @@ canvas{display:block;width:100%;height:100%;cursor:text}
 .tb{height:34px;border-radius:8px;border:none;background:transparent;color:var(--mu);padding:0 10px;display:inline-flex;gap:6px;align-items:center;cursor:pointer}.tb:hover:not(:disabled){background:var(--s2);color:var(--tx)}.tb:disabled{opacity:.35;cursor:default}
 .ex{height:36px;border-radius:9px;border:none;background:var(--tx);color:#0c0d10;font-weight:600;padding:0 16px;margin-left:8px;cursor:pointer}.ex:disabled{opacity:.3;cursor:default}
 .lvl{width:4px;height:22px;border-radius:2px;background:var(--ln);position:relative;overflow:hidden}.lvl i{position:absolute;left:0;right:0;bottom:0;background:var(--ok);height:0}
-.toast{position:fixed;left:50%;bottom:250px;transform:translateX(-50%);background:var(--s2);border:1px solid var(--ln);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;box-shadow:0 10px 30px #0008}.toast.on{opacity:1}
+.toast{position:fixed;left:50%;bottom:250px;transform:translateX(-50%);background:var(--s2);border:1px solid var(--ln);padding:10px 16px;border-radius:10px;opacity:0;transition:.2s;pointer-events:none;box-shadow:0 10px 30px #0008}.toast.on{opacity:1;pointer-events:auto}.toast button{margin-left:14px;background:none;border:0;color:#8fa6ff;font:inherit;font-weight:600;cursor:pointer;padding:0}
+.ic{width:30px;padding:0;justify-content:center}.ic svg{margin:0}#delList{max-height:50vh;overflow:auto;min-width:340px}#delList div{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--ln)}
 #ed{outline:none;border-radius:10px;margin:0 -16px;padding:4px 16px;transition:background .15s,box-shadow .15s}
 #ed.on{background:#13151a;box-shadow:inset 0 0 0 1px var(--ln);user-select:text;cursor:text}#ed.on:focus{box-shadow:inset 0 0 0 1px #6c8cff66}
 .t{display:flex;align-items:center;gap:12px}.sv{font-size:11px;letter-spacing:.04em;text-transform:none;color:var(--dim);font-weight:500}.sv.ok{color:var(--ok)}
@@ -52,6 +53,9 @@ dialog .r{display:flex;justify-content:flex-end;gap:8px}dialog button{height:34p
 <header class="bar">
  <div class="brand"><i></i>Shorts Recorder</div><div class="sep"></div>
  <select class="sel" id="scriptSel" title="Script"><option value="">Choose a script…</option></select>
+ <button class="chip ic" id="refBtn" title="Refresh the scripts list"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg></button>
+ <button class="chip ic" id="delBtn" title="Delete this script (moves it to scripts\\_deleted, Del when the list is focused)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/></svg></button>
+ <button class="chip ic" id="binBtn" title="Deleted scripts / restore" style="display:none"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
  <button class="chip" id="pasteBtn" title="Paste a script"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="8" y="3" width="8" height="4" rx="1"/><path d="M16 5h2a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V7a2 2 0 012-2h2"/></svg>Paste</button>
  <button class="chip" id="editBtn" title="Edit the script text (E)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg>Edit</button>
  <div class="grow"></div>
@@ -83,22 +87,23 @@ dialog .r{display:flex;justify-content:flex-end;gap:8px}dialog button{height:34p
  </div>
 </section>
 <div class="toast" id="toast"></div>
+<dialog id="binDlg"><h3 style="margin:0 0 10px">Deleted scripts</h3><div id="delList"></div><div style="text-align:right;margin-top:12px"><button class="chip" id="binClose">Close</button></div></dialog>
 <div class="help" id="help"><h4>Shortcuts</h4>
 <div>Play / pause from playhead<kbd>Space</kbd></div><div>Record / stop (continues from playhead)<kbd>R</kbd></div>
 <div>Set playhead<span>Click timeline</span></div><div>Select region<span>Drag · Shift+click</span></div>
 <div>Cut selection<kbd>Del</kbd></div><div>Undo / redo audio<span><kbd>Ctrl+Z</kbd> <kbd>Ctrl+Y</kbd></span></div>
 <div>Auto-trim ends<kbd>T</kbd></div><div>Crop to selection<kbd>C</kbd></div><div>Clear selection<kbd>Esc</kbd></div>
 <div>Move playhead<span><kbd>←</kbd> <kbd>→</kbd> <kbd>Home</kbd> <kbd>End</kbd></span></div>
-<div>Edit script text<kbd>E</kbd></div><div>Done editing<kbd>Esc</kbd></div><div>This help<kbd>?</kbd></div>
+<div>Delete script (list focused)<kbd>Del</kbd></div><div>Edit script text<kbd>E</kbd></div><div>Done editing<kbd>Esc</kbd></div><div>This help<kbd>?</kbd></div>
 <h4 style="margin-top:12px">Recording</h4><div style="display:block;line-height:1.5">With a selection, R replaces just that region. With the playhead mid-take it replaces from there to the end. At the end it keeps going.</div></div>
 <dialog id="dlg"><h3>Paste a script</h3><input id="pTitle" placeholder="Title"><textarea id="pText" placeholder="Script text"></textarea><div class="r"><button onclick="dlg.close()">Cancel</button><button class="p" id="pOk">Use script</button></div></dialog>
 <script>
-const APP_VERSION='2.1.0';
+const APP_VERSION='2.2.0';
 const SR=48000,$=id=>document.getElementById(id);
 const S={root:null,script:null,stream:null,buf:new Float32Array(0),raw:[],undo:[],redo:[],cur:0,sel:null,rec:null,play:null,dirty:false};
 const ac=new AudioContext({sampleRate:SR,latencyHint:'interactive'});
 const fmt=s=>{s=Math.max(0,s);const m=Math.floor(s/60),r=s-m*60;return String(m).padStart(2,'0')+':'+r.toFixed(1).padStart(4,'0')};
-let tt;const toast=m=>{const t=$('toast');t.textContent=m;t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),2600)};
+let tt;const toast=(m,act,fn,ms)=>{const t=$('toast');t.textContent=m;if(act){const b=document.createElement('button');b.textContent=act;b.onclick=()=>{t.classList.remove('on');fn()};t.appendChild(b)}t.classList.add('on');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('on'),ms||2600)};
 $('ver').textContent='v'+APP_VERSION;
 // ---------- storage ----------
 const idb=(mode,k,v)=>new Promise((res,rej)=>{const o=indexedDB.open('shortsrec',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');o.onerror=rej;o.onsuccess=()=>{const st=o.result.transaction('kv',mode).objectStore('kv');const r=mode=='readonly'?st.get(k):st.put(v,k);r.onsuccess=()=>res(r.result);r.onerror=rej}});
@@ -115,7 +120,23 @@ $('rootBtn').onclick=async()=>{if(!window.showDirectoryPicker)return toast('Open
 async function loadList(){const sel=$('scriptSel');sel.length=1;if(!S.root||!await perm(S.root))return;
  const sd=await S.root.getDirectoryHandle('scripts',{create:true});const n=[];for await(const [k,h] of sd.entries())if(h.kind=='file'&&/\.(txt|json)$/i.test(k))n.push(k);n.sort();
  for(const k of n){const o=new Option(k.replace(/\.(txt|json)$/i,''),k);sel.add(o)}
- const last=localStorage.lastScript;if(last&&n.includes(last)&&!S.script){sel.value=last;sel.onchange()}}
+ const cur=S.script&&S.script.file;if(cur&&n.includes(cur))sel.value=cur;
+ let dn=0;try{const dd=await sd.getDirectoryHandle('_deleted');for await(const [k,h] of dd.entries())if(h.kind=='file')dn++}catch(e){}$('binBtn').style.display=dn?'':'none';$('binBtn').title='Deleted scripts / restore ('+dn+')';
+ const last=localStorage.lastScript;if(last&&n.includes(last)&&!S.script){sel.value=last;sel.onchange()}return n}
+// ---------- script management: deletes are moves into scripts\_deleted\ (recoverable) ----------
+async function freeName(dir,name){const m=name.match(/^(.*?)(\.[^.]+)?$/);let k=name,i=1;for(;;){try{await dir.getFileHandle(k);k=m[1]+' ('+(++i)+')'+(m[2]||'')}catch(e){return k}}}
+async function moveFile(from,to,name){const f=await (await from.getFileHandle(name)).getFile();const dest=await freeName(to,name);const w=await (await to.getFileHandle(dest,{create:true})).createWritable();await w.write(await f.arrayBuffer());await w.close();
+ const chk=await (await to.getFileHandle(dest)).getFile();if(chk.size!==f.size)throw new Error('copy check failed');await from.removeEntry(name);return dest}
+async function delScript(name){name=name||$('scriptSel').value;if(!name||!S.root)return;if(!await perm(S.root))return toast('No folder access');
+ try{const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted',{create:true});flushSave();const dest=await moveFile(sd,dd,name);
+  const wasCur=S.script&&S.script.file===name;if(wasCur)S.script.file=null;if(localStorage.lastScript===name)localStorage.removeItem('lastScript');await loadList();if(wasCur)$('scriptSel').value='';
+  toast('Deleted '+name.replace(/\.(txt|json)$/i,'')+' (moved to scripts\\_deleted)','Undo',async()=>{const back=await restoreScript(dest,name);if(wasCur&&S.script&&!S.script.file){S.script.file=back;$('scriptSel').value=back}},6000)}catch(e){toast('Could not delete: '+e.message)}}
+async function restoreScript(dname,orig){const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted');const back=await moveFile(dd,sd,orig||dname);await loadList();toast('Restored '+back);return back}
+async function showBin(){const box=$('delList');box.innerHTML='';const dd=await (await S.root.getDirectoryHandle('scripts')).getDirectoryHandle('_deleted',{create:true});const n=[];for await(const [k,h] of dd.entries())if(h.kind=='file')n.push(k);n.sort();
+ if(!n.length)box.textContent='Nothing deleted.';for(const k of n){const r=document.createElement('div'),l=document.createElement('span'),b=document.createElement('button');l.textContent=k;b.className='chip';b.textContent='Restore';b.onclick=async()=>{await restoreScript(k);r.remove();if(!box.children.length)$('binDlg').close()};r.append(l,b);box.appendChild(r)}$('binDlg').showModal()}
+$('refBtn').onclick=async()=>{const n=await loadList();if(n)toast(n.length+' scripts')};$('delBtn').onclick=()=>delScript();$('binBtn').onclick=showBin;$('binClose').onclick=()=>$('binDlg').close();
+$('scriptSel').addEventListener('keydown',e=>{if(e.key=='Delete'){e.preventDefault();e.stopPropagation();delScript()}});
+let refT=0;addEventListener('focus',()=>{if(S.root&&!S.rec&&Date.now()-refT>1500){refT=Date.now();loadList().catch(()=>{})}});
 $('scriptSel').onchange=async()=>{const n=$('scriptSel').value;if(!n)return;try{const f=await (await (await S.root.getDirectoryHandle('scripts')).getFileHandle(n)).getFile();const o=parseScript(n,await f.text());o.file=n;useScript(o);localStorage.lastScript=n}catch(e){toast('Could not read '+n)}};
 $('pasteBtn').onclick=()=>$('dlg').showModal();
 $('pOk').onclick=()=>{const t=$('pText').value.trim();if(!t)return;const ti=$('pTitle').value.trim()||'Pasted script';useScript({title:ti,slug:slugify(ti),text:t});$('dlg').close()};
@@ -262,5 +283,5 @@ $('updBtn').onclick=async()=>{if(!latest)return checkUpdate(true);if(S.dirty&&!c
 // ---------- boot ----------
 ui();(async()=>{try{const h=await idb('readonly','root');if(h){S.root=h;$('rootName').textContent=h.name;if(await h.queryPermission({mode:'readwrite'})=='granted')await loadList();else{toast('Click anywhere to re-allow folder access');addEventListener('pointerdown',async()=>{if(await perm(S.root))loadList()},{once:true,capture:true})}}}catch(e){}
  try{await openMic()}catch(e){toast('Microphone blocked: '+e.message)}ui();checkUpdate(false)})();
-window.__t={setEdit,saveScript,S,setRoot,useScript,startRec,stopRec,cut,undo,redoOp,crop,autoTrim,doExport,play,ui};
+window.__t={loadList,delScript,restoreScript,showBin,setEdit,saveScript,S,setRoot,useScript,startRec,stopRec,cut,undo,redoOp,crop,autoTrim,doExport,play,ui};
 </script></body></html>
