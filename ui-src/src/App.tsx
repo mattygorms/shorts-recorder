@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from "react"
-import { RefreshCw, Trash2, ArchiveRestore, ClipboardPaste, Pencil, Folder, Undo2, Scissors, Crop, Wand2, Timer, FilePlus2, Download, Play } from "lucide-react"
+import { RefreshCw, Trash2, ArchiveRestore, ClipboardPaste, Pencil, Folder, Undo2, Scissors, Crop, Wand2, Timer, FilePlus2, Download, Play, Search, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Kbd } from "@/components/ui/kbd"
@@ -85,7 +85,7 @@ function Help() {
   const ui = useUI()
   return <Popover open={ui.help} onOpenChange={(o) => B.set({ help: o })}>
     <PopoverTrigger asChild><Button id="helpBtn" variant="ghost" size="icon-sm" title="Keyboard shortcuts (?)" className="font-semibold">?</Button></PopoverTrigger>
-    <PopoverContent id="help" align="end" className="w-80" onOpenAutoFocus={(e) => e.preventDefault()}>
+    <PopoverContent id="help" side="right" align="start" className="w-80" onOpenAutoFocus={(e) => e.preventDefault()}>
       <p className="mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">Shortcuts</p>
       <div className="space-y-1.5 text-sm">
         {SHORTCUTS.map(([l, k]) => <div key={l} className="flex items-center justify-between gap-3 text-muted-foreground"><span>{l}</span><span className="text-foreground">{k}</span></div>)}
@@ -97,55 +97,133 @@ function Help() {
   </Popover>
 }
 
+function Section({ label, children, right }: { label: string; children: React.ReactNode; right?: React.ReactNode }) {
+  return <div className="px-3 py-2.5">
+    <div className="mb-1.5 flex h-6 items-center justify-between"><span className="text-[11px] font-medium tracking-wider text-muted-foreground uppercase">{label}</span>{right}</div>
+    {children}
+  </div>
+}
+
+const name = (k: string) => k.replace(/\.(txt|json)$/i, "")
+
+function ScriptList() {
+  const ui = useUI()
+  const [q, setQ] = useState("")
+  const list = ui.scripts.filter((k) => name(k).toLowerCase().includes(q.trim().toLowerCase()))
+  const focusRow = (k: string) => requestAnimationFrame(() => (document.querySelector(`#scriptList [data-k="${CSS.escape(k)}"]`) as HTMLElement | null)?.focus())
+  const onKey = (e: React.KeyboardEvent) => {
+    if (!list.length) return
+    const i = list.indexOf(ui.cur)
+    let j = -1
+    if (e.key === "ArrowDown") j = Math.min(list.length - 1, i + 1)
+    else if (e.key === "ArrowUp") j = i < 0 ? 0 : Math.max(0, i - 1)
+    else if (e.key === "Home") j = 0
+    else if (e.key === "End") j = list.length - 1
+    else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); if (ui.cur) B.del(ui.cur); return }
+    else return
+    e.preventDefault()
+    if (list[j] && list[j] !== ui.cur) { B.pick(list[j]); focusRow(list[j]) }
+  }
+  return <Section label="Scripts" right={<div className="flex items-center">
+    <Tip tip="Refresh the scripts list"><Button id="refBtn" variant="ghost" size="icon-xs"><RefreshCw /></Button></Tip>
+    <Tip tip="Deleted scripts / restore"><Button id="binBtn" variant="ghost" size="icon-xs" style={{ display: "none" }}><ArchiveRestore /></Button></Tip>
+  </div>}>
+    {ui.scripts.length > 6 && <div className="relative mb-1.5"><Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input id="scriptFilter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter scripts" className="h-7 pl-7 text-xs" /></div>}
+    <ScrollArea className="h-[min(34vh,320px)] rounded-md border bg-background/40">
+      <div id="scriptList" role="listbox" aria-label="Scripts (Del deletes the selected script)" onKeyDown={onKey} className="p-1">
+        {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts yet. Choose your folder, then put .txt files in scripts\.</p>}
+        {ui.scripts.length > 0 && !list.length && <p className="px-2 py-3 text-xs text-muted-foreground">No match.</p>}
+        {list.map((k) => {
+          const sel = k === ui.cur
+          return <div key={k} data-k={k} role="option" aria-selected={sel} tabIndex={sel || (!ui.cur && k === list[0]) ? 0 : -1}
+            onClick={() => B.pick(k)}
+            className={"group/row flex h-8 cursor-pointer items-center gap-2 rounded-md pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
+            <FileText className="size-3.5 shrink-0 opacity-60" />
+            <span className="min-w-0 flex-1 truncate" title={name(k)}>{name(k)}</span>
+            <button type="button" tabIndex={-1} aria-label={"Delete " + name(k)} title="Delete (moves it to scripts\_deleted)"
+              onClick={(e) => { e.stopPropagation(); B.del(k) }}
+              className="rowDel grid size-6 shrink-0 place-items-center rounded text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 hover:bg-destructive/20 hover:text-red-400"><Trash2 className="size-3.5" /></button>
+          </div>
+        })}
+      </div>
+    </ScrollArea>
+    <div className="mt-1.5 grid grid-cols-2 gap-1">
+      <Button id="pasteBtn" variant="outline" size="sm"><ClipboardPaste />Paste</Button>
+      <Button id="editBtn" variant="outline" size="sm" title="Edit the script text (E)" className="[&.act]:bg-accent"><Pencil /><span id="editLbl">Edit</span></Button>
+    </div>
+  </Section>
+}
+
+function MicPicker() {
+  const ui = useUI()
+  return <div className="flex items-center gap-2">
+    <div className="relative h-8 w-1.5 shrink-0 overflow-hidden rounded-full bg-muted" title="Input level"><i id="lvl" className="absolute inset-x-0 bottom-0 block" /></div>
+    <Select value={ui.mic || undefined} onValueChange={(v) => B.pickMic(v === "default" && !ui.mics.some((m) => m.id === "default") ? "" : v)}>
+      <SelectTrigger id="micSel" size="sm" className="w-full min-w-0" title="Microphone"><SelectValue placeholder="Microphone" /></SelectTrigger>
+      <SelectContent id="micList" position="popper" className="max-w-[340px]">
+        {ui.mics.map((m) => <SelectItem key={m.id || "default"} value={m.id || "default"}>{m.label}</SelectItem>)}
+      </SelectContent>
+    </Select>
+  </div>
+}
+
 let started = false
 export default function App() {
   useEffect(() => { if (!started) { started = true; startEngine() } }, [])
   return <TooltipProvider delayDuration={400}>
-    <div className="dark flex h-screen flex-col bg-background text-foreground">
-      <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-        <div className="flex items-center gap-2 pr-2 text-sm font-semibold"><span className="size-2 rounded-full bg-red-500" />Shorts Recorder</div>
-        <Separator orientation="vertical" className="mx-1 !h-5" />
-        <NativeSelect id="scriptSel" title="Script (Del deletes the selected script)" className="w-56"><NativeSelectOption value="">Choose a script…</NativeSelectOption></NativeSelect>
-        <Tip tip="Refresh the scripts list"><Button id="refBtn" variant="ghost" size="icon-sm"><RefreshCw /></Button></Tip>
-        <Tip tip="Delete script (moves it to scripts\_deleted)"><Button id="delBtn" variant="ghost" size="icon-sm"><Trash2 /></Button></Tip>
-        <Tip tip="Deleted scripts / restore"><Button id="binBtn" variant="ghost" size="icon-sm" style={{ display: "none" }}><ArchiveRestore /></Button></Tip>
-        <Separator orientation="vertical" className="mx-1 !h-5" />
-        <Button id="pasteBtn" variant="ghost" size="sm"><ClipboardPaste />Paste</Button>
-        <Tip tip={<span className="flex items-center gap-2">Edit the script text <Kbd>E</Kbd></span>}><Button id="editBtn" variant="ghost" size="sm" className="[&.act]:bg-accent"><Pencil /><span id="editLbl">Edit</span></Button></Tip>
-        <div className="flex-1" />
-        <div className="relative h-5 w-1.5 overflow-hidden rounded-full bg-muted" title="Input level"><i id="lvl" className="absolute inset-x-0 bottom-0 block" /></div>
-        <NativeSelect id="micSel" title="Microphone" className="w-56" />
-        <Button id="rootBtn" variant="ghost" size="sm" title="Root folder"><Folder /><b id="rootName" className="font-medium">Choose folder</b></Button>
-        <Separator orientation="vertical" className="mx-1 !h-5" />
-        <Button id="updBtn" variant="ghost" size="sm" className="group/upd" title="Check for updates">
-          <span id="ver" className="text-xs text-muted-foreground" />
-          <Badge id="badge" className="hidden group-[.has]/upd:inline-flex">Update</Badge>
-        </Button>
-        <Help />
-      </header>
-      <main id="prompt" className="flex-1 overflow-y-auto"><div id="pin" className="mx-auto max-w-[680px] px-6 pt-10 pb-24" /></main>
-      <section className="shrink-0 border-t bg-card/40 px-4 pt-3 pb-4">
-        <div className="h-[118px] overflow-hidden rounded-lg border bg-background"><canvas id="cv" className="block h-full w-full cursor-text" /></div>
-        <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
-          <div><div id="time" className="font-mono text-sm tabular-nums" /><div id="hint" className="mt-0.5 text-xs text-muted-foreground" /></div>
-          <div className="flex items-center gap-3">
-            <Button id="playBtn" variant="outline" size="icon" className="rounded-full" title="Play / pause (Space)"><svg id="playIco" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></Button>
-            <button id="recBtn" title="Record (R)" className="rb"><i /></button>
-            <Button id="undoBtn" variant="outline" size="icon" className="rounded-full" title="Undo (Ctrl+Z)"><Undo2 /></Button>
+    <div className="dark flex h-screen min-w-[1000px] bg-background text-foreground">
+      <aside id="side" className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r bg-sidebar">
+        <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
+          <span className="size-2 shrink-0 rounded-full bg-red-500" /><span className="text-sm font-semibold whitespace-nowrap">Shorts Recorder</span>
+          <Button id="updBtn" variant="ghost" size="sm" className="group/upd h-7 min-w-0 gap-1.5 px-1.5" title="Check for updates">
+            <span id="ver" className="text-xs text-muted-foreground group-[.has]/upd:hidden" />
+            <Badge id="badge" className="hidden group-[.has]/upd:inline-flex">Update</Badge>
+          </Button>
+          <div className="flex-1" />
+          <Help />
+        </div>
+        <ScriptList />
+        <Separator />
+        <Section label="Input">
+          <div className="space-y-1.5">
+            <MicPicker />
+            <Button id="rootBtn" variant="outline" size="sm" className="w-full justify-start" title="Root folder"><Folder /><b id="rootName" className="truncate font-medium">Choose folder</b></Button>
           </div>
-          <div className="flex items-center justify-end gap-1">
-            <Button id="cutBtn" variant="ghost" size="sm" title="Delete selection (Del)"><Scissors />Cut</Button>
-            <Button id="cropBtn" variant="ghost" size="sm" title="Keep only the selection (C)"><Crop />Crop</Button>
-            <Button id="trimBtn" variant="ghost" size="sm" title="Auto-trim silence at the ends (T)"><Wand2 />Auto-trim</Button>
-            <Button id="preBtn" variant="ghost" size="sm" className="[&.act]:bg-accent [&.act]:text-accent-foreground" title="Play 2 s before the playhead, then start recording"><Timer />Pre-roll</Button>
-            <Button id="newBtn" variant="ghost" size="sm" title="Discard and start a new take"><FilePlus2 />New take</Button>
-            <Separator orientation="vertical" className="mx-1 !h-5" />
+        </Section>
+        <Separator />
+        <Section label="Edit take">
+          <div className="grid grid-cols-2 gap-1">
+            <Button id="cutBtn" variant="ghost" size="sm" className="justify-start" title="Delete selection (Del)"><Scissors />Cut</Button>
+            <Button id="cropBtn" variant="ghost" size="sm" className="justify-start" title="Keep only the selection (C)"><Crop />Crop</Button>
+            <Button id="trimBtn" variant="ghost" size="sm" className="justify-start" title="Auto-trim silence at the ends (T)"><Wand2 />Auto-trim</Button>
+            <Button id="preBtn" variant="ghost" size="sm" className="justify-start [&.act]:bg-accent [&.act]:text-accent-foreground" title="Play 2 s before the playhead, then start recording"><Timer />Pre-roll</Button>
+          </div>
+        </Section>
+        <Separator />
+        <Section label="Take">
+          <div className="grid grid-cols-2 gap-1">
+            <Button id="newBtn" variant="outline" size="sm" title="Discard and start a new take"><FilePlus2 />New take</Button>
             <Button id="exportBtn" size="sm"><Download />Export</Button>
           </div>
-        </div>
-      </section>
+        </Section>
+      </aside>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <main id="prompt" className="flex-1 overflow-y-auto"><div id="pin" className="mx-auto max-w-[760px] px-8 pt-10 pb-24" /></main>
+        <section className="shrink-0 border-t bg-card/40 px-4 pt-3 pb-4">
+          <div className="h-[128px] overflow-hidden rounded-lg border bg-background"><canvas id="cv" className="block h-full w-full cursor-text" /></div>
+          <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-4">
+            <div><div id="time" className="font-mono text-sm tabular-nums" /><div id="hint" className="mt-0.5 text-xs text-muted-foreground" /></div>
+            <div className="flex items-center gap-3">
+              <Button id="playBtn" variant="outline" size="icon" className="rounded-full" title="Play / pause (Space)"><svg id="playIco" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg></Button>
+              <button id="recBtn" title="Record (R)" className="rb"><i /></button>
+              <Button id="undoBtn" variant="outline" size="icon" className="rounded-full" title="Undo (Ctrl+Z)"><Undo2 /></Button>
+            </div>
+            <div />
+          </div>
+        </section>
+      </div>
       <Overlays />
-      <Toaster position="bottom-center" offset={250} theme="dark" />
+      <Toaster position="bottom-right" offset={{ bottom: 220, right: 24 }} theme="dark" />
       <Play className="hidden" />
     </div>
   </TooltipProvider>

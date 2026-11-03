@@ -3,6 +3,9 @@
 import {B} from './bridge'
 export function startEngine(){
 // React owns the onclick property on its elements, so engine click handlers live in H and are dispatched by id.
+// v3.1: the script list and mic picker are React components; these shims keep the v2 select-style engine code unchanged.
+const SEL={_v:'',o:[],get value(){return this._v},set value(v){this._v=v||'';B.set({cur:this._v})},set length(n){this.o=[];B.set({scripts:[]})},add(x){this.o.push(x.value);B.set({scripts:[...this.o]})},onchange:null};
+const MIC={_v:'',o:[],get value(){return this._v},set value(v){this._v=v||'';B.set({mic:this._v})},set innerHTML(x){this.o=[];B.set({mics:[]})},add(x){this.o.push({id:x.value,label:x.text});B.set({mics:[...this.o]})},onchange:null};
 const CLK={};document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button[id]');if(b&&CLK[b.id]&&!b.disabled)CLK[b.id].call(b,e)});
 
 const APP_VERSION=window.APP_VERSION;
@@ -24,7 +27,7 @@ function parseScript(name,text){let o;name=name.toLowerCase();
 async function perm(h){if(await h.queryPermission({mode:'readwrite'})=='granted')return true;return (await h.requestPermission({mode:'readwrite'}))=='granted'}
 async function setRoot(h){S.root=h;$('rootName').textContent=h.name||'Folder';await idb('readwrite','root',h);await loadList()}
 CLK['rootBtn']=async()=>{if(!window.showDirectoryPicker)return toast('Open this in Edge or Chrome via the launcher');try{await setRoot(await showDirectoryPicker({id:'shortsroot',mode:'readwrite',startIn:'documents'}))}catch(e){}};
-async function loadList(){const sel=$('scriptSel');sel.length=1;if(!S.root||!await perm(S.root))return;
+async function loadList(){const sel=SEL;sel.length=1;if(!S.root||!await perm(S.root))return;
  const sd=await S.root.getDirectoryHandle('scripts',{create:true});const n=[];for await(const [k,h] of sd.entries())if(h.kind=='file'&&/\.(txt|json)$/i.test(k))n.push(k);n.sort();
  for(const k of n){const o=new Option(k.replace(/\.(txt|json)$/i,''),k);sel.add(o)}
  const cur=S.script&&S.script.file;if(cur&&n.includes(cur))sel.value=cur;
@@ -34,18 +37,18 @@ async function loadList(){const sel=$('scriptSel');sel.length=1;if(!S.root||!awa
 async function freeName(dir,name){const m=name.match(/^(.*?)(\.[^.]+)?$/);let k=name,i=1;for(;;){try{await dir.getFileHandle(k);k=m[1]+' ('+(++i)+')'+(m[2]||'')}catch(e){return k}}}
 async function moveFile(from,to,name){const f=await (await from.getFileHandle(name)).getFile();const dest=await freeName(to,name);const w=await (await to.getFileHandle(dest,{create:true})).createWritable();await w.write(await f.arrayBuffer());await w.close();
  const chk=await (await to.getFileHandle(dest)).getFile();if(chk.size!==f.size)throw new Error('copy check failed');await from.removeEntry(name);return dest}
-async function delScript(name){name=name||$('scriptSel').value;if(!name||!S.root)return;if(!await perm(S.root))return toast('No folder access');
+async function delScript(name){name=name||SEL.value;if(!name||!S.root)return;if(!await perm(S.root))return toast('No folder access');
  try{const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted',{create:true});flushSave();const dest=await moveFile(sd,dd,name);
-  const wasCur=S.script&&S.script.file===name;if(wasCur)S.script.file=null;if(localStorage.lastScript===name)localStorage.removeItem('lastScript');await loadList();if(wasCur)$('scriptSel').value='';
-  toast('Deleted '+name.replace(/\.(txt|json)$/i,'')+' (moved to scripts\\_deleted)','Undo',async()=>{const back=await restoreScript(dest,name);if(wasCur&&S.script&&!S.script.file){S.script.file=back;$('scriptSel').value=back}},6000)}catch(e){toast('Could not delete: '+e.message)}}
+  const wasCur=S.script&&S.script.file===name;if(wasCur)S.script.file=null;if(localStorage.lastScript===name)localStorage.removeItem('lastScript');await loadList();if(wasCur)SEL.value='';
+  toast('Deleted '+name.replace(/\.(txt|json)$/i,'')+' (moved to scripts\\_deleted)','Undo',async()=>{const back=await restoreScript(dest,name);if(wasCur&&S.script&&!S.script.file){S.script.file=back;SEL.value=back}},6000)}catch(e){toast('Could not delete: '+e.message)}}
 async function restoreScript(dname,orig){const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted');const back=await moveFile(dd,sd,orig||dname);await loadList();toast('Restored '+back);return back}
 async function showBin(){const dd=await (await S.root.getDirectoryHandle('scripts')).getDirectoryHandle('_deleted',{create:true});const n=[];for await(const [k,h] of dd.entries())if(h.kind=='file')n.push(k);n.sort();
  B.set({bin:n})}
 B.restore=async k=>{await restoreScript(k);const b=B.get().bin.filter(x=>x!==k);B.set({bin:b.length?b:null})};
 CLK['refBtn']=async()=>{const n=await loadList();if(n)toast(n.length+' scripts')};CLK['delBtn']=()=>delScript();CLK['binBtn']=showBin;
-$('scriptSel').addEventListener('keydown',e=>{if(e.key=='Delete'){e.preventDefault();e.stopPropagation();delScript()}});
+B.pick=async k=>{if(k===SEL.value&&S.script&&S.script.file===k)return;SEL.value=k;await SEL.onchange();SEL.value=S.script&&S.script.file||''};B.del=k=>delScript(k);B.pickMic=id=>{MIC.value=id;MIC.onchange()};
 let refT=0;addEventListener('focus',()=>{if(S.root&&!S.rec&&Date.now()-refT>1500){refT=Date.now();loadList().catch(()=>{})}});
-$('scriptSel').onchange=async()=>{const n=$('scriptSel').value;if(!n)return;try{const f=await (await (await S.root.getDirectoryHandle('scripts')).getFileHandle(n)).getFile();const o=parseScript(n,await f.text());o.file=n;await useScript(o);localStorage.lastScript=n}catch(e){toast('Could not read '+n)}};
+SEL.onchange=async()=>{const n=SEL.value;if(!n)return;try{const f=await (await (await S.root.getDirectoryHandle('scripts')).getFileHandle(n)).getFile();const o=parseScript(n,await f.text());o.file=n;await useScript(o);localStorage.lastScript=n}catch(e){toast('Could not read '+n)}};
 CLK['pasteBtn']=()=>B.set({paste:true});
 B.paste=async(ti,t)=>{t=t.trim();if(!t)return false;ti=ti.trim()||'Pasted script';B.set({paste:false});await useScript({title:ti,slug:slugify(ti),text:t});return true};
 async function useScript(o){if(S.dirty&&!await B.ask('Discard the current take?','It has not been exported. Switching scripts clears it.','Discard'))return;setEdit(false);S.script=o;resetTake();const pin=$('pin');pin.innerHTML='';const t=document.createElement('div');t.className='t';const tn=document.createElement('span');tn.textContent=o.title;const sv=document.createElement('span');sv.className='sv';sv.id='sv';sv.textContent=o.file?'':'Pasted · edits stay in this session';t.append(tn,sv);pin.appendChild(t);
@@ -65,13 +68,13 @@ async function saveScript(){saveT=null;const o=S.script;if(!o||!o.file||!S.root)
  if(S.script===o){sv.className='sv ok';sv.textContent='Saved'}}catch(e){sv.className='sv';sv.textContent='Not saved: '+e.message}}
 function emptyPrompt(){$('pin').innerHTML='<div class="empty">'+(S.root?'Pick a script from the top bar,<br>or <b>Paste</b> one.':'Choose your <b>MattyGorm Shorts</b> folder to start.<br>Scripts are read from its <b>scripts</b> folder.')+'</div>'}
 // ---------- mic ----------
-async function listMics(){const d=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind=='audioinput');const s=$('micSel');s.innerHTML='';for(const x of d)s.add(new Option(x.label||'Microphone',x.deviceId));const k=localStorage.mic;if(k&&d.some(x=>x.deviceId==k))s.value=k}
+async function listMics(){const d=(await navigator.mediaDevices.enumerateDevices()).filter(x=>x.kind=='audioinput');const s=MIC;s.innerHTML='';for(const x of d)s.add(new Option(x.label||'Microphone',x.deviceId));const k=localStorage.mic;if(k&&d.some(x=>x.deviceId==k))s.value=k}
 let meterNode;
-async function openMic(){if(S.stream)S.stream.getTracks().forEach(t=>t.stop());const id=$('micSel').value||localStorage.mic;
+async function openMic(){if(S.stream)S.stream.getTracks().forEach(t=>t.stop());const id=MIC.value||localStorage.mic;
  S.stream=await navigator.mediaDevices.getUserMedia({audio:{deviceId:id?{exact:id}:undefined,echoCancellation:false,noiseSuppression:false,autoGainControl:false,channelCount:1}});
- await listMics();const sid=S.stream.getAudioTracks()[0].getSettings().deviceId;if(sid){$('micSel').value=sid;localStorage.mic=sid}
+ await listMics();const sid=S.stream.getAudioTracks()[0].getSettings().deviceId;if(sid){MIC.value=sid;localStorage.mic=sid}
  await ensureWorklet();if(S.srcNode)S.srcNode.disconnect();S.srcNode=ac.createMediaStreamSource(S.stream);S.srcNode.connect(S.cap)}
-$('micSel').onchange=()=>{localStorage.mic=$('micSel').value;openMic().catch(e=>toast('Mic error: '+e.message))};
+MIC.onchange=()=>{localStorage.mic=MIC.value;openMic().catch(e=>toast('Mic error: '+e.message))};
 // ---------- lossless capture (AudioWorklet, raw float PCM) ----------
 const WK=`class C extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(1024);this.n=0}process(i){const c=i[0]&&i[0][0];if(c){let pk=0;for(let k=0;k<c.length;k++){this.b[this.n++]=c[k];const a=c[k]<0?-c[k]:c[k];if(a>pk)pk=a;if(this.n==1024){this.port.postMessage(this.b);this.b=new Float32Array(1024);this.n=0}}}return true}}registerProcessor('cap',C)`;
 async function ensureWorklet(){if(S.cap)return;await ac.audioWorklet.addModule(URL.createObjectURL(new Blob([WK],{type:'text/javascript'})));S.cap=new AudioWorkletNode(ac,'cap',{numberOfInputs:1,numberOfOutputs:1,outputChannelCount:[1]});const g=ac.createGain();g.gain.value=0;S.cap.connect(g).connect(ac.destination);
@@ -160,7 +163,8 @@ for(const id of ['recBtn','playBtn','undoBtn','cutBtn','cropBtn','trimBtn','preB
 CLK['playBtn']=play;CLK['undoBtn']=undo;CLK['cutBtn']=cut;CLK['cropBtn']=crop;CLK['trimBtn']=()=>autoTrim(true);
 addEventListener('keydown',e=>{const k=e.key,c=e.ctrlKey||e.metaKey;
  if(e.target.closest('[contenteditable="true"]')){if(k=='Escape'){e.preventDefault();setEdit(false)}return} // text has its own Ctrl+Z
- if(e.target.closest('input,textarea,select,dialog,[role=dialog],[role=alertdialog]')||B.modal())return;
+ if(e.target.closest('input,textarea,select,dialog,[role=dialog],[role=alertdialog],[role=combobox],[role=listbox]:not(#scriptList)')||B.modal())return;
+ if(e.target.closest('#scriptList')&&['Delete','Backspace','ArrowUp','ArrowDown','Enter','Home','End'].includes(k))return; // list handles its own keys
  if(k=='?'){B.set({help:!B.get().help});return}
  if(k==' '){e.preventDefault();if(S.rec)stopRec();else play()}else if((k=='r'||k=='R')&&!c){e.preventDefault();S.rec?stopRec():startRec()}else if((k=='e'||k=='E')&&!c&&S.script){e.preventDefault();setEdit(true)}else if(c&&(k=='z'||k=='Z')){e.preventDefault();e.shiftKey?redoOp():undo()}else if(c&&(k=='y'||k=='Y')){e.preventDefault();redoOp()}
  else if(k=='Delete'||k=='Backspace'){e.preventDefault();cut()}else if(k=='Enter'||k=='p'||k=='P'){e.preventDefault();play()}else if(k=='Escape'){S.sel=null;ui()}

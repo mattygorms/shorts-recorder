@@ -85,4 +85,4 @@ BUILDING THE APP (v3+, developers only)
   which server.ps1 serves and the updater downloads exactly as before.
     cd ui-src && npm ci && npm run build      (writes ../app/index.html)
     python3 make-manifest.py https://raw.githubusercontent.com/mattygorms/shorts-recorder/main
-  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'.
+  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.1: script list + mic picker are React (no native <select>).

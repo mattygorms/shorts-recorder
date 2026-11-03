@@ -142,3 +142,6 @@ html{color-scheme:dark}
 .rb:hover{border-color:var(--rec)}.rb.on{border-color:var(--rec);box-shadow:0 0 0 6px color-mix(in oklab,var(--rec) 18%,transparent)}.rb.on i{width:20px;height:20px;border-radius:5px}
 #time span{color:var(--muted-foreground)}
 #playIco{width:18px;height:18px}
+
+/* v3.1: native scrollbars, form controls and any remaining UA popups render dark */
+:root { color-scheme: dark; }
