@@ -105,15 +105,22 @@ function Section({ label, children, right }: { label: string; children: React.Re
 }
 
 const name = (k: string) => k.replace(/\.(txt|json)$/i, "")
+const fmtCreated = (ms: number | null) => {
+  if (!ms) return ""
+  const d = new Date(ms)
+  const date = d.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "America/New_York" })
+  const time = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })
+  return date + " · " + time
+}
 
 function ScriptList() {
   const ui = useUI()
   const [q, setQ] = useState("")
-  const list = ui.scripts.filter((k) => name(k).toLowerCase().includes(q.trim().toLowerCase()))
+  const list = ui.scripts.filter((r) => name(r.k).toLowerCase().includes(q.trim().toLowerCase()))
   const focusRow = (k: string) => requestAnimationFrame(() => (document.querySelector(`#scriptList [data-k="${CSS.escape(k)}"]`) as HTMLElement | null)?.focus())
   const onKey = (e: React.KeyboardEvent) => {
     if (!list.length) return
-    const i = list.indexOf(ui.cur)
+    const i = list.findIndex((r) => r.k === ui.cur)
     let j = -1
     if (e.key === "ArrowDown") j = Math.min(list.length - 1, i + 1)
     else if (e.key === "ArrowUp") j = i < 0 ? 0 : Math.max(0, i - 1)
@@ -122,24 +129,29 @@ function ScriptList() {
     else if (e.key === "Delete" || e.key === "Backspace") { e.preventDefault(); if (ui.cur) B.del(ui.cur); return }
     else return
     e.preventDefault()
-    if (list[j] && list[j] !== ui.cur) { B.pick(list[j]); focusRow(list[j]) }
+    if (list[j] && list[j].k !== ui.cur) { B.pick(list[j].k); focusRow(list[j].k) }
   }
   return <Section label="Scripts" right={<div className="flex items-center">
     <Tip tip="Refresh the scripts list"><Button id="refBtn" variant="ghost" size="icon-xs"><RefreshCw /></Button></Tip>
     <Tip tip="Deleted scripts / restore"><Button id="binBtn" variant="ghost" size="icon-xs" style={{ display: "none" }}><ArchiveRestore /></Button></Tip>
   </div>}>
     {ui.scripts.length > 6 && <div className="relative mb-1.5"><Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input id="scriptFilter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter scripts" className="h-7 pl-7 text-xs" /></div>}
-    <ScrollArea className="h-[min(34vh,320px)] rounded-md border bg-background/40">
+    <ScrollArea className="h-[min(40vh,380px)] rounded-md border bg-background/40">
       <div id="scriptList" role="listbox" aria-label="Scripts (Del deletes the selected script)" onKeyDown={onKey} className="p-1">
         {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts yet. Choose your folder, then put .txt files in scripts\.</p>}
         {ui.scripts.length > 0 && !list.length && <p className="px-2 py-3 text-xs text-muted-foreground">No match.</p>}
-        {list.map((k) => {
+        {list.map((r) => {
+          const k = r.k
           const sel = k === ui.cur
-          return <div key={k} data-k={k} role="option" aria-selected={sel} tabIndex={sel || (!ui.cur && k === list[0]) ? 0 : -1}
+          const when = fmtCreated(r.created)
+          return <div key={k} data-k={k} role="option" aria-selected={sel} tabIndex={sel || (!ui.cur && k === list[0]?.k) ? 0 : -1}
             onClick={() => B.pick(k)}
-            className={"group/row flex h-8 cursor-pointer items-center gap-2 rounded-md pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
+            className={"group/row flex min-h-10 cursor-pointer items-center gap-2 rounded-md py-1 pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
             <FileText className="size-3.5 shrink-0 opacity-60" />
-            <span className="min-w-0 flex-1 truncate" title={name(k)}>{name(k)}</span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate" title={name(k)}>{name(k)}</span>
+              {when && <span className="block truncate text-[10px] font-normal tracking-wide text-muted-foreground/80" title={when}>{when}</span>}
+            </span>
             <button type="button" tabIndex={-1} aria-label={"Delete " + name(k)} title="Delete (moves it to scripts\_deleted)"
               onClick={(e) => { e.stopPropagation(); B.del(k) }}
               className="rowDel grid size-6 shrink-0 place-items-center rounded text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 hover:bg-destructive/20 hover:text-red-400"><Trash2 className="size-3.5" /></button>

@@ -4,7 +4,7 @@ import {B} from './bridge'
 export function startEngine(){
 // React owns the onclick property on its elements, so engine click handlers live in H and are dispatched by id.
 // v3.1: the script list and mic picker are React components; these shims keep the v2 select-style engine code unchanged.
-const SEL={_v:'',o:[],get value(){return this._v},set value(v){this._v=v||'';B.set({cur:this._v})},set length(n){this.o=[];B.set({scripts:[]})},add(x){this.o.push(x.value);B.set({scripts:[...this.o]})},onchange:null};
+const SEL={_v:'',o:[],get value(){return this._v},set value(v){this._v=v||'';B.set({cur:this._v})},set length(n){this.o=[];B.set({scripts:[]})},add(x){const row=x&&typeof x==='object'&&'k' in x?x:{k:x.value||x,created:null};this.o.push(row);B.set({scripts:[...this.o]})},onchange:null};
 const MIC={_v:'',o:[],get value(){return this._v},set value(v){this._v=v||'';B.set({mic:this._v})},set innerHTML(x){this.o=[];B.set({mics:[]})},add(x){this.o.push({id:x.value,label:x.text});B.set({mics:[...this.o]})},onchange:null};
 const CLK={};document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('button[id]');if(b&&CLK[b.id]&&!b.disabled)CLK[b.id].call(b,e)});
 
@@ -19,18 +19,22 @@ $('ver').textContent='v'+APP_VERSION;
 const idb=(mode,k,v)=>new Promise((res,rej)=>{const o=indexedDB.open('shortsrec',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');o.onerror=rej;o.onsuccess=()=>{const st=o.result.transaction('kv',mode).objectStore('kv');const r=mode=='readonly'?st.get(k):st.put(v,k);r.onsuccess=()=>res(r.result);r.onerror=rej}});
 const slugify=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'short';
 function parseScript(name,text){let o;name=name.toLowerCase();
- if(name.endsWith('.json')){const j=JSON.parse(text);o={title:j.title||name,slug:j.slug,text:j.script||j.text||(j.lines||[]).join('\n'),json:j}}
- else{const m=text.replace(/^\uFEFF/,'').split(/\r?\n/);let title=name.replace(/\.txt$/,''),slug=null,i=0,hdr=false;
-  for(;i<m.length;i++){const l=m[i];let r;if(r=l.match(/^title:\s*(.*)/i)){title=r[1].trim();hdr=true}else if(r=l.match(/^slug:\s*(.*)/i)){slug=r[1].trim();hdr=true}else if(/^-{3,}\s*$/.test(l)){i++;break}else if(l.trim()==='')continue;else break}
-  o={title,slug,text:m.slice(i).join('\n').trim(),header:hdr?m.slice(0,i).join('\n').trimEnd()+'\n':''}}
+ if(name.endsWith('.json')){const j=JSON.parse(text);o={title:j.title||name,slug:j.slug,text:j.script||j.text||(j.lines||[]).join('\n'),json:j,created:j.created||null}}
+ else{const m=text.replace(/^\uFEFF/,'').split(/\r?\n/);let title=name.replace(/\.txt$/,''),slug=null,created=null,i=0,hdr=false;
+  for(;i<m.length;i++){const l=m[i];let r;if(r=l.match(/^title:\s*(.*)/i)){title=r[1].trim();hdr=true}else if(r=l.match(/^slug:\s*(.*)/i)){slug=r[1].trim();hdr=true}else if(r=l.match(/^created:\s*(.*)/i)){created=r[1].trim();hdr=true}else if(/^-{3,}\s*$/.test(l)){i++;break}else if(l.trim()==='')continue;else if(/^[a-zA-Z][\w-]*:\s/.test(l)){hdr=true}else break}
+  o={title,slug,created,text:m.slice(i).join('\n').trim(),header:hdr?m.slice(0,i).join('\n').trimEnd()+'\n':''}}
  o.slug=slugify(o.slug||o.title);return o}
+function createdMs(o,file){if(o&&o.created){let s=String(o.created).trim();if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s))s+=':00';const t=Date.parse(s);if(!isNaN(t))return t}return file&&file.lastModified?file.lastModified:null}
 async function perm(h){if(await h.queryPermission({mode:'readwrite'})=='granted')return true;return (await h.requestPermission({mode:'readwrite'}))=='granted'}
 async function setRoot(h){S.root=h;$('rootName').textContent=h.name||'Folder';await idb('readwrite','root',h);await loadList()}
 CLK['rootBtn']=async()=>{if(!window.showDirectoryPicker)return toast('Open this in Edge or Chrome via the launcher');try{await setRoot(await showDirectoryPicker({id:'shortsroot',mode:'readwrite',startIn:'documents'}))}catch(e){}};
 async function loadList(){const sel=SEL;sel.length=1;if(!S.root||!await perm(S.root))return;
- const sd=await S.root.getDirectoryHandle('scripts',{create:true});const n=[];for await(const [k,h] of sd.entries())if(h.kind=='file'&&/\.(txt|json)$/i.test(k))n.push(k);n.sort();
- for(const k of n){const o=new Option(k.replace(/\.(txt|json)$/i,''),k);sel.add(o)}
- const cur=S.script&&S.script.file;if(cur&&n.includes(cur))sel.value=cur;
+ const sd=await S.root.getDirectoryHandle('scripts',{create:true});const rows=[];
+ for await(const [k,h] of sd.entries()){if(h.kind!='file'||!/\.(txt|json)$/i.test(k))continue;
+  try{const f=await h.getFile();const o=parseScript(k,await f.text());rows.push({k,created:createdMs(o,f)})}catch(e){rows.push({k,created:null})}}
+ rows.sort((a,b)=>((b.created||0)-(a.created||0))||a.k.localeCompare(b.k));
+ for(const r of rows)sel.add(r);
+ const n=rows.map(r=>r.k);const cur=S.script&&S.script.file;if(cur&&n.includes(cur))sel.value=cur;
  let dn=0;try{const dd=await sd.getDirectoryHandle('_deleted');for await(const [k,h] of dd.entries())if(h.kind=='file')dn++}catch(e){}$('binBtn').style.display=dn?'':'none';$('binBtn').title='Deleted scripts / restore ('+dn+')';
  const last=localStorage.lastScript;if(last&&n.includes(last)&&!S.script){sel.value=last;sel.onchange()}return n}
 // ---------- script management: deletes are moves into scripts\_deleted\ (recoverable) ----------

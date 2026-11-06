@@ -1,4 +1,4 @@
-SHORTS RECORDER v2  -  record MattyGorm Shorts narration in one take
+SHORTS RECORDER v3.2  -  record MattyGorm Shorts narration in one take
 =====================================================================
 
 INSTALL / UPGRADE FROM v1 (one time)
@@ -61,8 +61,10 @@ MANAGING SCRIPTS
   Your current take is kept. Exports/recordings are never touched.
 
 SCRIPT FILES (MattyGorm Shorts\scripts\)
-  .txt:  title: My Title / slug: my-slug / --- / script text
-  .json: {"title": "...", "slug": "...", "script": "..."}
+  .txt:  title: My Title / slug: my-slug / created: YYYY-MM-DDTHH:MM / --- / script text
+         (created is optional; the list sorts newest-first and shows the date.
+          Without created, the file's last-modified time is used.)
+  .json: {"title": "...", "slug": "...", "script": "...", "created": "..."}
 
 UPDATES
 - The version is shown top right. On launch the app checks for a newer version
@@ -85,4 +87,4 @@ BUILDING THE APP (v3+, developers only)
   which server.ps1 serves and the updater downloads exactly as before.
     cd ui-src && npm ci && npm run build      (writes ../app/index.html)
     python3 make-manifest.py https://raw.githubusercontent.com/mattygorms/shorts-recorder/main
-  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.1: script list + mic picker are React (no native <select>).
+  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).
