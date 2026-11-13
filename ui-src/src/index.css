@@ -145,3 +145,14 @@ html{color-scheme:dark}
 
 /* v3.1: native scrollbars, form controls and any remaining UA popups render dark */
 :root { color-scheme: dark; }
+
+/* Script rows: keep lock/trash icons visible; don't let long titles overflow the list.
+   Radix ScrollArea's inner wrapper is display:table / min-width:100%, which otherwise
+   makes the row as wide as the title and clips the icons. */
+[data-slot="scroll-area-viewport"] > div { display: block !important; min-width: 0 !important; max-width: 100%; width: 100%; }
+#scriptList { min-width: 0; width: 100%; overflow-x: hidden; }
+#scriptList [data-k] { min-width: 0; width: 100%; overflow: hidden; }
+#scriptList .rowLock,
+#scriptList .rowDel,
+#scriptList .rowDelWrap { flex-shrink: 0; }
+#side { min-width: 0; overflow-x: hidden; }

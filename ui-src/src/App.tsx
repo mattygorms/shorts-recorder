@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from "react"
+import { useEffect, useState, useSyncExternalStore, useRef } from "react"
 import { RefreshCw, Trash2, ArchiveRestore, ClipboardPaste, Pencil, Folder, Undo2, Scissors, Crop, Wand2, Timer, FilePlus2, Download, Play, Search, FileText, Lock, LockOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -137,8 +137,8 @@ function ScriptList() {
     <Tip tip="Deleted scripts / restore"><Button id="binBtn" variant="ghost" size="icon-xs" style={{ display: "none" }}><ArchiveRestore /></Button></Tip>
   </div>}>
     {ui.scripts.length > 6 && <div className="relative mb-1.5"><Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input id="scriptFilter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter scripts" className="h-7 pl-7 text-xs" /></div>}
-    <ScrollArea className="h-[min(40vh,380px)] rounded-md border bg-background/40">
-      <div id="scriptList" role="listbox" aria-label="Scripts (Del deletes the selected script)" onKeyDown={onKey} className="p-1">
+    <ScrollArea className="min-w-0 h-[min(40vh,380px)] rounded-md border bg-background/40">
+      <div id="scriptList" role="listbox" aria-label="Scripts (Del deletes the selected script)" onKeyDown={onKey} className="min-w-0 w-full overflow-x-hidden p-1">
         {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts from today. Lock a script to keep it in the list, or restore one from Deleted.</p>}
         {ui.scripts.length > 0 && !list.length && <p className="px-2 py-3 text-xs text-muted-foreground">No match.</p>}
         {(() => {
@@ -150,9 +150,9 @@ function ScriptList() {
             const when = fmtCreated(r.created)
             return <div key={k} data-k={k} role="option" aria-selected={sel} tabIndex={sel || (!ui.cur && k === list[0]?.k) ? 0 : -1}
               onClick={() => B.pick(k)}
-              className={"group/row flex min-h-10 cursor-pointer items-center gap-2 rounded-md py-1 pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
+              className={"group/row flex min-h-10 w-full min-w-0 cursor-pointer items-center gap-1 overflow-hidden rounded-md py-1 pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
               <FileText className="size-3.5 shrink-0 opacity-60" />
-              <span className="min-w-0 flex-1">
+              <span className="min-w-0 flex-1 overflow-hidden">
                 <span className="block truncate" title={name(k)}>{name(k)}</span>
                 {when && <span className="block truncate text-[10px] font-normal tracking-wide text-muted-foreground/80" title={when}>{when}</span>}
               </span>
@@ -160,10 +160,10 @@ function ScriptList() {
                 title={r.locked ? "Unlock (older scripts leave the list unless locked)" : "Lock (keep this script in the list)"}
                 onClick={(e) => { e.stopPropagation(); B.toggleLock(k) }}
                 className={"rowLock grid size-6 shrink-0 place-items-center rounded hover:bg-accent " + (r.locked ? "text-amber-400" : "text-muted-foreground")}>{r.locked ? <Lock className="size-3.5" /> : <LockOpen className="size-3.5" />}</button>
-              <span className="shrink-0" title={r.locked ? "Unlock to delete" : "Delete (moves it to scripts\_deleted)"}>
+              <span className="rowDelWrap shrink-0" title={r.locked ? "Unlock to delete" : "Delete (moves it to scripts\_deleted)"}>
                 <button type="button" tabIndex={-1} disabled={!!r.locked} aria-disabled={!!r.locked} aria-label={r.locked ? "Unlock to delete " + name(k) : "Delete " + name(k)}
                   onClick={(e) => { e.stopPropagation(); if (!r.locked) B.del(k) }}
-                  className={"rowDel grid size-6 place-items-center rounded " + (r.locked ? "cursor-not-allowed text-muted-foreground/40" : "text-muted-foreground hover:bg-destructive/20 hover:text-red-400")}><Trash2 className="size-3.5" /></button>
+                  className={"rowDel grid size-6 shrink-0 place-items-center rounded " + (r.locked ? "cursor-not-allowed text-muted-foreground/40" : "text-muted-foreground hover:bg-destructive/20 hover:text-red-400")}><Trash2 className="size-3.5" /></button>
               </span>
             </div>
           }
@@ -205,12 +205,47 @@ function UpdateButton() {
   </Button>
 }
 
+const SIDE_MIN = 280, SIDE_MAX = 640, SIDE_DEFAULT = 420
+function readSideWidth() {
+  try {
+    const n = parseInt(localStorage.getItem("sideWidth") || "", 10)
+    if (Number.isFinite(n)) return Math.min(SIDE_MAX, Math.max(SIDE_MIN, n))
+  } catch { /* ignore */ }
+  return SIDE_DEFAULT
+}
+
 let started = false
 export default function App() {
-  useEffect(() => { if (!started) { started = true; startEngine() } }, [])
+  const [sideW, setSideW] = useState(SIDE_DEFAULT)
+  const drag = useRef<{ x: number; w: number } | null>(null)
+  useEffect(() => {
+    if (!started) { started = true; startEngine() }
+    setSideW(readSideWidth())
+  }, [])
+  const onSideDrag = (e: React.PointerEvent) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const start = { x: e.clientX, w: sideW }
+    drag.current = start
+    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
+    const move = (ev: PointerEvent) => {
+      const nw = Math.min(SIDE_MAX, Math.max(SIDE_MIN, start.w + ev.clientX - start.x))
+      setSideW(nw)
+    }
+    const up = (ev: PointerEvent) => {
+      const nw = Math.min(SIDE_MAX, Math.max(SIDE_MIN, start.w + ev.clientX - start.x))
+      setSideW(nw)
+      try { localStorage.setItem("sideWidth", String(Math.round(nw))) } catch { /* ignore */ }
+      drag.current = null
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", up)
+    }
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", up)
+  }
   return <TooltipProvider delayDuration={400}>
     <div className="dark flex h-screen min-w-[1000px] bg-background text-foreground">
-      <aside id="side" className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r bg-sidebar">
+      <aside id="side" style={{ width: sideW }} className="flex min-w-0 shrink-0 flex-col overflow-x-hidden overflow-y-auto border-r bg-sidebar">
         <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
           <span className="size-2 shrink-0 rounded-full bg-red-500" /><span className="text-sm font-semibold whitespace-nowrap">Shorts Recorder</span>
           <UpdateButton />
@@ -242,6 +277,9 @@ export default function App() {
           </div>
         </Section>
       </aside>
+      <div id="sideDrag" role="separator" aria-orientation="vertical" aria-label="Resize sidebar" aria-valuemin={SIDE_MIN} aria-valuemax={SIDE_MAX} aria-valuenow={Math.round(sideW)}
+        title="Drag to resize" onPointerDown={onSideDrag}
+        className="w-1.5 shrink-0 cursor-col-resize bg-transparent hover:bg-ring/40 active:bg-ring/50" />
       <div className="flex min-w-0 flex-1 flex-col">
         <main id="prompt" className="flex-1 overflow-y-auto"><div id="pin" className="mx-auto max-w-[760px] px-8 pt-10 pb-24" /></main>
         <section className="shrink-0 border-t bg-card/40 px-4 pt-3 pb-4">
