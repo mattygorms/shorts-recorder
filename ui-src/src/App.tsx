@@ -15,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import { B } from "./bridge"
 import { startEngine } from "./engine"
+import { updateView } from "./updateBadge.js"
 
 const useUI = () => useSyncExternalStore(B.sub, B.get)
 
@@ -194,6 +195,16 @@ function MicPicker() {
   </div>
 }
 
+function UpdateButton() {
+  const ui = useUI()
+  const v = updateView(ui.latest, window.APP_VERSION, ui.updateError)
+  return <Button id="updBtn" variant="ghost" size="sm" className="h-7 min-w-0 gap-1.5 px-1.5" title={v.title}>
+    {v.hasUpdate
+      ? <Badge id="badge" className="inline-flex">{v.badgeText}</Badge>
+      : <span id="ver" className="text-xs text-muted-foreground">{v.versionText}</span>}
+  </Button>
+}
+
 let started = false
 export default function App() {
   useEffect(() => { if (!started) { started = true; startEngine() } }, [])
@@ -202,10 +213,7 @@ export default function App() {
       <aside id="side" className="flex w-[300px] shrink-0 flex-col overflow-y-auto border-r bg-sidebar">
         <div className="flex h-14 shrink-0 items-center gap-2 border-b px-3">
           <span className="size-2 shrink-0 rounded-full bg-red-500" /><span className="text-sm font-semibold whitespace-nowrap">Shorts Recorder</span>
-          <Button id="updBtn" variant="ghost" size="sm" className="group/upd h-7 min-w-0 gap-1.5 px-1.5" title="Check for updates">
-            <span id="ver" className="text-xs text-muted-foreground group-[.has]/upd:hidden" />
-            <Badge id="badge" className="hidden group-[.has]/upd:inline-flex">Update</Badge>
-          </Button>
+          <UpdateButton />
           <div className="flex-1" />
           <Help />
         </div>

@@ -1,4 +1,4 @@
-SHORTS RECORDER v3.3.1  -  record MattyGorm Shorts narration in one take
+SHORTS RECORDER v3.3.2  -  record MattyGorm Shorts narration in one take
 =====================================================================
 
 INSTALL / UPGRADE FROM v1 (one time)
@@ -100,4 +100,4 @@ BUILDING THE APP (v3+, developers only)
   which server.ps1 serves and the updater downloads exactly as before.
     cd ui-src && npm ci && npm run build      (writes ../app/index.html)
     python3 make-manifest.py https://raw.githubusercontent.com/mattygorms/shorts-recorder/main
-  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.3.1: lock and delete icons are always visible; locked scripts cannot be deleted until unlocked. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).
+  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.3.2: Update badge is rendered from React state (so it no longer disappears on re-render) and the app re-checks for updates every 15 minutes. v3.3.1: lock and delete icons are always visible; locked scripts cannot be deleted until unlocked. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).

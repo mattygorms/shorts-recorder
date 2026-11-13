@@ -15,7 +15,6 @@ const S={root:null,script:null,stream:null,buf:new Float32Array(0),raw:[],undo:[
 const ac=new AudioContext({sampleRate:SR,latencyHint:'interactive'});
 const fmt=s=>{s=Math.max(0,s);const m=Math.floor(s/60),r=s-m*60;return String(m).padStart(2,'0')+':'+r.toFixed(1).padStart(4,'0')};
 const toast=(m,act,fn,ms)=>B.toast(m,act,fn,ms);
-$('ver').textContent='v'+APP_VERSION;
 // ---------- storage ----------
 const idb=(mode,k,v)=>new Promise((res,rej)=>{const o=indexedDB.open('shortsrec',1);o.onupgradeneeded=()=>o.result.createObjectStore('kv');o.onerror=rej;o.onsuccess=()=>{const st=o.result.transaction('kv',mode).objectStore('kv');const r=mode=='readonly'?st.get(k):st.put(v,k);r.onsuccess=()=>res(r.result);r.onerror=rej}});
 const slugify=s=>String(s).toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,60)||'short';
@@ -202,12 +201,13 @@ CLK['exportBtn']=()=>doExport().catch(e=>toast('Export failed: '+e.message));
 // ---------- updates ----------
 async function api(p,opt){const r=await fetch(p,Object.assign({cache:'no-store',headers:{'X-Shorts-Recorder':'1'}},opt));if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
 let latest=null;
-async function checkUpdate(manual){const b=$('updBtn');try{const j=await api('/api/version');if(j.error)throw new Error(j.error);latest=j.updateAvailable?j.latest:null;b.classList.toggle('has',!!latest);$('badge').textContent='Update '+(latest||'');b.title=latest?'Update available: v'+latest+' — click to install':'Up to date';if(manual&&!latest)toast('You’re on the latest version (v'+APP_VERSION+')')}
- catch(e){latest=null;b.classList.remove('has');b.title='Couldn’t check for updates';if(manual)toast('Couldn’t check for updates')}}
+async function checkUpdate(manual){try{const j=await api('/api/version');if(j.error)throw new Error(j.error);latest=j.updateAvailable?j.latest:null;B.set({latest,updateError:false});if(manual&&!latest)toast('You’re on the latest version (v'+APP_VERSION+')')}
+ catch(e){latest=null;B.set({latest:null,updateError:true});if(manual)toast('Couldn’t check for updates')}}
 CLK['updBtn']=async()=>{if(!latest)return checkUpdate(true);if(S.dirty&&!await B.ask('Update now?','You have an unexported take. Updating reloads the app and it will be lost.','Update'))return;
  toast('Updating to v'+latest+'…');try{const r=await api('/api/update',{method:'POST',body:'{}'});if(!r.ok)throw new Error(r.error||'failed');S.dirty=false;
   for(let i=0;i<40;i++){await new Promise(z=>setTimeout(z,500));try{const v=await api('/api/version?local=1');if(v.version==r.version){location.reload();return}}catch(e){}}location.reload()}
  catch(e){toast('Update failed: '+e.message+' (nothing was changed)')}};
+setInterval(()=>checkUpdate(false),15*60*1000);
 // ---------- boot ----------
 ui();(async()=>{try{const h=await idb('readonly','root');if(h){S.root=h;$('rootName').textContent=h.name;if(await h.queryPermission({mode:'readwrite'})=='granted')await loadList();else{toast('Click anywhere to re-allow folder access');addEventListener('pointerdown',async()=>{if(await perm(S.root))loadList()},{once:true,capture:true})}}}catch(e){}
  try{await openMic()}catch(e){toast('Microphone blocked: '+e.message)}ui();checkUpdate(false)})();
