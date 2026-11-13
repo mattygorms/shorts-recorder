@@ -158,10 +158,12 @@ function ScriptList() {
               <button type="button" tabIndex={-1} aria-label={(r.locked ? "Unlock " : "Lock ") + name(k)} aria-pressed={!!r.locked}
                 title={r.locked ? "Unlock (older scripts leave the list unless locked)" : "Lock (keep this script in the list)"}
                 onClick={(e) => { e.stopPropagation(); B.toggleLock(k) }}
-                className={"rowLock grid size-6 shrink-0 place-items-center rounded hover:bg-accent " + (r.locked ? "text-amber-400 opacity-100" : "text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100")}>{r.locked ? <Lock className="size-3.5" /> : <LockOpen className="size-3.5" />}</button>
-              <button type="button" tabIndex={-1} aria-label={"Delete " + name(k)} title="Delete (moves it to scripts\_deleted)"
-                onClick={(e) => { e.stopPropagation(); B.del(k) }}
-                className="rowDel grid size-6 shrink-0 place-items-center rounded text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 hover:bg-destructive/20 hover:text-red-400"><Trash2 className="size-3.5" /></button>
+                className={"rowLock grid size-6 shrink-0 place-items-center rounded hover:bg-accent " + (r.locked ? "text-amber-400" : "text-muted-foreground")}>{r.locked ? <Lock className="size-3.5" /> : <LockOpen className="size-3.5" />}</button>
+              <span className="shrink-0" title={r.locked ? "Unlock to delete" : "Delete (moves it to scripts\_deleted)"}>
+                <button type="button" tabIndex={-1} disabled={!!r.locked} aria-disabled={!!r.locked} aria-label={r.locked ? "Unlock to delete " + name(k) : "Delete " + name(k)}
+                  onClick={(e) => { e.stopPropagation(); if (!r.locked) B.del(k) }}
+                  className={"rowDel grid size-6 place-items-center rounded " + (r.locked ? "cursor-not-allowed text-muted-foreground/40" : "text-muted-foreground hover:bg-destructive/20 hover:text-red-400")}><Trash2 className="size-3.5" /></button>
+              </span>
             </div>
           }
           const label = (text: string) => <p className="px-2 pt-1.5 pb-0.5 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">{text}</p>

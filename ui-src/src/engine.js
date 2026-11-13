@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Ported 1:1 from v2.2 app/index.html. DOM is rendered by React (App.tsx) with the same element ids.
 import {B} from './bridge'
-import {parseLocks, serializeLocks, shouldKeep, isLockFile, isLockedName, sortVisible, parseCreatedMs, clearLock, LOCK_FILE} from './scriptFilter.js'
+import {parseLocks, serializeLocks, shouldKeep, isLockFile, isLockedName, sortVisible, parseCreatedMs, clearLock, canDelete, LOCK_FILE} from './scriptFilter.js'
 export function startEngine(){
 // React owns the onclick property on its elements, so engine click handlers live in H and are dispatched by id.
 // v3.1: the script list and mic picker are React components; these shims keep the v2 select-style engine code unchanged.
@@ -49,7 +49,8 @@ async function freeName(dir,name){const m=name.match(/^(.*?)(\.[^.]+)?$/);let k=
 async function moveFile(from,to,name){const f=await (await from.getFileHandle(name)).getFile();const dest=await freeName(to,name);const w=await (await to.getFileHandle(dest,{create:true})).createWritable();await w.write(await f.arrayBuffer());await w.close();
  const chk=await (await to.getFileHandle(dest)).getFile();if(chk.size!==f.size)throw new Error('copy check failed');await from.removeEntry(name);return dest}
 async function delScript(name){name=name||SEL.value;if(!name||!S.root)return;if(!await perm(S.root))return toast('No folder access');
- try{const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted',{create:true});flushSave();const dest=await moveFile(sd,dd,name);
+ try{const sd=await S.root.getDirectoryHandle('scripts');if(!canDelete(await readLocks(sd),name))return toast('Unlock to delete');
+ const dd=await sd.getDirectoryHandle('_deleted',{create:true});flushSave();const dest=await moveFile(sd,dd,name);
   const locks=clearLock(await readLocks(sd),name);await writeLocks(sd,locks);
   const wasCur=S.script&&S.script.file===name;if(wasCur)S.script.file=null;if(localStorage.lastScript===name)localStorage.removeItem('lastScript');await loadList({quiet:true});if(wasCur)SEL.value='';
   toast('Deleted '+name.replace(/\.(txt|json)$/i,'')+' (moved to scripts\\_deleted)','Undo',async()=>{const back=await restoreScript(dest,name);if(wasCur&&S.script&&!S.script.file){S.script.file=back;SEL.value=back}},6000)}catch(e){toast('Could not delete: '+e.message)}}

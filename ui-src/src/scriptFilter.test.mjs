@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert'
 import {
   isLockFile, nyDay, isTodayNY, parseCreatedMs, isLockedName, shouldKeep,
-  parseLocks, serializeLocks, clearLock, sortVisible, LOCK_FILE
+  parseLocks, serializeLocks, clearLock, sortVisible, canDelete, LOCK_FILE
 } from './scriptFilter.js'
 
 const NY = 'America/New_York'
@@ -103,5 +103,14 @@ const wiped = all.filter((r) => !isLockFile(r.k) && !shouldKeep(r, {
   'stormforge-tornadoes-hunt-you.txt': true,
 }, NOW)).map((r) => r.k)
 assert.deepEqual(wiped, ['growtopia-leaving-steam-december-1.txt'])
+
+
+assert.equal(canDelete({ 'a.txt': true }, 'a.txt'), false)
+assert.equal(canDelete({ 'a.txt': true }, 'A.TXT'), false)
+assert.equal(canDelete({ 'a.txt': true }, 'b.txt'), true)
+assert.equal(canDelete({}, 'a.txt'), true)
+assert.equal(canDelete({ 'a.txt': true }, ''), false)
+assert.equal(canDelete({ 'a.txt': true }, null), false)
+assert.equal(canDelete(null, 'a.txt'), true)
 
 console.log('scriptFilter tests passed')

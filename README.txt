@@ -1,4 +1,4 @@
-SHORTS RECORDER v3.3  -  record MattyGorm Shorts narration in one take
+SHORTS RECORDER v3.3.1  -  record MattyGorm Shorts narration in one take
 =====================================================================
 
 INSTALL / UPGRADE FROM v1 (one time)
@@ -65,9 +65,12 @@ MANAGING SCRIPTS
   Deleted (Undo in the popup for 6 s).
   Refresh button (next to the script menu) re-reads scripts\ without
   reloading; the list also refreshes when you switch back to the window.
-  Trash button (or Del while the script menu is focused) deletes the script:
-  it is MOVED to scripts\_deleted\, never erased. Undo in the popup for 6 s,
-  or the restore button (shows when anything is deleted) to bring it back.
+  Each row always shows a lock icon and a trash icon. A locked script cannot
+  be deleted (the trash icon is grayed out: "Unlock to delete") until you
+  unlock it, including with the Del key. Trash (or Del while the script menu
+  is focused) on an unlocked script MOVES it to scripts\_deleted\, never
+  erased. Undo in the popup for 6 s, or the restore button (shows when
+  anything is deleted) to bring it back.
   Your current take is kept. Exports/recordings are never touched.
 
 SCRIPT FILES (MattyGorm Shorts\scripts\)
@@ -97,4 +100,4 @@ BUILDING THE APP (v3+, developers only)
   which server.ps1 serves and the updater downloads exactly as before.
     cd ui-src && npm ci && npm run build      (writes ../app/index.html)
     python3 make-manifest.py https://raw.githubusercontent.com/mattygorms/shorts-recorder/main
-  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).
+  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.3.1: lock and delete icons are always visible; locked scripts cannot be deleted until unlocked. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).

@@ -44,6 +44,11 @@ export function shouldKeep(row, locks, now = Date.now()) {
   return isTodayNY(row && row.created, now)
 }
 
+// Locked scripts cannot be deleted (trash or keyboard) until unlocked.
+export function canDelete(locks, k) {
+  return !!k && !isLockedName(locks, k)
+}
+
 export function parseLocks(text) {
   try {
     const j = JSON.parse(text)
