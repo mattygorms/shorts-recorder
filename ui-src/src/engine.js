@@ -1,6 +1,7 @@
 // @ts-nocheck
 // Ported 1:1 from v2.2 app/index.html. DOM is rendered by React (App.tsx) with the same element ids.
 import {B} from './bridge'
+import {parseLocks, serializeLocks, shouldKeep, isLockFile, isLockedName, sortVisible, parseCreatedMs, clearLock, LOCK_FILE} from './scriptFilter.js'
 export function startEngine(){
 // React owns the onclick property on its elements, so engine click handlers live in H and are dispatched by id.
 // v3.1: the script list and mic picker are React components; these shims keep the v2 select-style engine code unchanged.
@@ -24,33 +25,43 @@ function parseScript(name,text){let o;name=name.toLowerCase();
   for(;i<m.length;i++){const l=m[i];let r;if(r=l.match(/^title:\s*(.*)/i)){title=r[1].trim();hdr=true}else if(r=l.match(/^slug:\s*(.*)/i)){slug=r[1].trim();hdr=true}else if(r=l.match(/^created:\s*(.*)/i)){created=r[1].trim();hdr=true}else if(/^-{3,}\s*$/.test(l)){i++;break}else if(l.trim()==='')continue;else if(/^[a-zA-Z][\w-]*:\s/.test(l)){hdr=true}else break}
   o={title,slug,created,text:m.slice(i).join('\n').trim(),header:hdr?m.slice(0,i).join('\n').trimEnd()+'\n':''}}
  o.slug=slugify(o.slug||o.title);return o}
-function createdMs(o,file){if(o&&o.created){let s=String(o.created).trim();if(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s))s+=':00';const t=Date.parse(s);if(!isNaN(t))return t}return file&&file.lastModified?file.lastModified:null}
+function createdMs(o,file){return parseCreatedMs(o&&o.created,file&&file.lastModified?file.lastModified:null)}
 async function perm(h){if(await h.queryPermission({mode:'readwrite'})=='granted')return true;return (await h.requestPermission({mode:'readwrite'}))=='granted'}
 async function setRoot(h){S.root=h;$('rootName').textContent=h.name||'Folder';await idb('readwrite','root',h);await loadList()}
 CLK['rootBtn']=async()=>{if(!window.showDirectoryPicker)return toast('Open this in Edge or Chrome via the launcher');try{await setRoot(await showDirectoryPicker({id:'shortsroot',mode:'readwrite',startIn:'documents'}))}catch(e){}};
-async function loadList(){const sel=SEL;sel.length=1;if(!S.root||!await perm(S.root))return;
+async function readLocks(sd){try{const f=await (await sd.getFileHandle(LOCK_FILE)).getFile();return parseLocks(await f.text())}catch(e){return {}}}
+async function writeLocks(sd,locks){const body=serializeLocks(locks).replace(/\r?\n/g,'\r\n');const w=await (await sd.getFileHandle(LOCK_FILE,{create:true})).createWritable();await w.write(body);await w.close()}
+async function loadList(opts){opts=opts||{};const sel=SEL;sel.length=1;if(!S.root||!await perm(S.root))return;
  const sd=await S.root.getDirectoryHandle('scripts',{create:true});const rows=[];
- for await(const [k,h] of sd.entries()){if(h.kind!='file'||!/\.(txt|json)$/i.test(k))continue;
+ for await(const [k,h] of sd.entries()){if(h.kind!='file'||isLockFile(k)||!/\.(txt|json)$/i.test(k))continue;
   try{const f=await h.getFile();const o=parseScript(k,await f.text());rows.push({k,created:createdMs(o,f)})}catch(e){rows.push({k,created:null})}}
- rows.sort((a,b)=>((b.created||0)-(a.created||0))||a.k.localeCompare(b.k));
- for(const r of rows)sel.add(r);
- const n=rows.map(r=>r.k);const cur=S.script&&S.script.file;if(cur&&n.includes(cur))sel.value=cur;
+ const locks=await readLocks(sd);const wiped=[];
+ if(!S.rec){let dd=null;for(const r of rows){if(shouldKeep(r,locks))continue;try{if(!dd)dd=await sd.getDirectoryHandle('_deleted',{create:true});const dest=await moveFile(sd,dd,r.k);wiped.push(r.k);if(S.script&&S.script.file===r.k)S.script.file=null;if(localStorage.lastScript===r.k)localStorage.removeItem('lastScript')}catch(e){toast('Could not move '+r.k+' to Deleted: '+e.message)}}}
+ const visible=sortVisible(rows.filter(r=>!wiped.includes(r.k)).map(r=>({k:r.k,created:r.created,locked:isLockedName(locks,r.k)})));
+ for(const r of visible)sel.add(r);
+ const n=visible.map(r=>r.k);const cur=S.script&&S.script.file;if(cur&&n.includes(cur))sel.value=cur;
  let dn=0;try{const dd=await sd.getDirectoryHandle('_deleted');for await(const [k,h] of dd.entries())if(h.kind=='file')dn++}catch(e){}$('binBtn').style.display=dn?'':'none';$('binBtn').title='Deleted scripts / restore ('+dn+')';
- const last=localStorage.lastScript;if(last&&n.includes(last)&&!S.script){sel.value=last;sel.onchange()}return n}
+ const last=localStorage.lastScript;if(last&&n.includes(last)&&!S.script){sel.value=last;sel.onchange()}
+ if(wiped.length&&!opts.quiet)toast(wiped.length+' older script'+(wiped.length===1?'':'s')+' moved to Deleted. Lock a script to keep it in the list.');
+ return {names:n,wiped}}
 // ---------- script management: deletes are moves into scripts\_deleted\ (recoverable) ----------
 async function freeName(dir,name){const m=name.match(/^(.*?)(\.[^.]+)?$/);let k=name,i=1;for(;;){try{await dir.getFileHandle(k);k=m[1]+' ('+(++i)+')'+(m[2]||'')}catch(e){return k}}}
 async function moveFile(from,to,name){const f=await (await from.getFileHandle(name)).getFile();const dest=await freeName(to,name);const w=await (await to.getFileHandle(dest,{create:true})).createWritable();await w.write(await f.arrayBuffer());await w.close();
  const chk=await (await to.getFileHandle(dest)).getFile();if(chk.size!==f.size)throw new Error('copy check failed');await from.removeEntry(name);return dest}
 async function delScript(name){name=name||SEL.value;if(!name||!S.root)return;if(!await perm(S.root))return toast('No folder access');
  try{const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted',{create:true});flushSave();const dest=await moveFile(sd,dd,name);
-  const wasCur=S.script&&S.script.file===name;if(wasCur)S.script.file=null;if(localStorage.lastScript===name)localStorage.removeItem('lastScript');await loadList();if(wasCur)SEL.value='';
+  const locks=clearLock(await readLocks(sd),name);await writeLocks(sd,locks);
+  const wasCur=S.script&&S.script.file===name;if(wasCur)S.script.file=null;if(localStorage.lastScript===name)localStorage.removeItem('lastScript');await loadList({quiet:true});if(wasCur)SEL.value='';
   toast('Deleted '+name.replace(/\.(txt|json)$/i,'')+' (moved to scripts\\_deleted)','Undo',async()=>{const back=await restoreScript(dest,name);if(wasCur&&S.script&&!S.script.file){S.script.file=back;SEL.value=back}},6000)}catch(e){toast('Could not delete: '+e.message)}}
-async function restoreScript(dname,orig){const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted');const back=await moveFile(dd,sd,orig||dname);await loadList();toast('Restored '+back);return back}
+async function restoreScript(dname,orig){const sd=await S.root.getDirectoryHandle('scripts'),dd=await sd.getDirectoryHandle('_deleted');const back=await moveFile(dd,sd,orig||dname);
+ const locks=await readLocks(sd);locks[back]=true;await writeLocks(sd,locks);
+ await loadList({quiet:true});toast('Restored and locked '+back.replace(/\.(txt|json)$/i,''));return back}
 async function showBin(){const dd=await (await S.root.getDirectoryHandle('scripts')).getDirectoryHandle('_deleted',{create:true});const n=[];for await(const [k,h] of dd.entries())if(h.kind=='file')n.push(k);n.sort();
  B.set({bin:n})}
 B.restore=async k=>{await restoreScript(k);const b=B.get().bin.filter(x=>x!==k);B.set({bin:b.length?b:null})};
-CLK['refBtn']=async()=>{const n=await loadList();if(n)toast(n.length+' scripts')};CLK['delBtn']=()=>delScript();CLK['binBtn']=showBin;
+CLK['refBtn']=async()=>{const r=await loadList({quiet:true});if(r)toast(r.wiped.length?r.names.length+' scripts · '+r.wiped.length+' older moved to Deleted':r.names.length+' scripts')};CLK['delBtn']=()=>delScript();CLK['binBtn']=showBin;
 B.pick=async k=>{if(k===SEL.value&&S.script&&S.script.file===k)return;SEL.value=k;await SEL.onchange();SEL.value=S.script&&S.script.file||''};B.del=k=>delScript(k);B.pickMic=id=>{MIC.value=id;MIC.onchange()};
+B.toggleLock=async k=>{if(!k||!S.root||!await perm(S.root))return toast('No folder access');try{const sd=await S.root.getDirectoryHandle('scripts');let locks=await readLocks(sd);const on=!isLockedName(locks,k);if(on)locks[k]=true;else locks=clearLock(locks,k);await writeLocks(sd,locks);const r=await loadList({quiet:true});if(!on&&r&&r.wiped.includes(k))toast('Unlocked — moved to Deleted (not from today)','Undo',async()=>{await restoreScript(k)},6000);else toast(on?'Locked — this script stays in the list':'Unlocked')}catch(e){toast('Could not update lock: '+e.message)}};
 let refT=0;addEventListener('focus',()=>{if(S.root&&!S.rec&&Date.now()-refT>1500){refT=Date.now();loadList().catch(()=>{})}});
 SEL.onchange=async()=>{const n=SEL.value;if(!n)return;try{const f=await (await (await S.root.getDirectoryHandle('scripts')).getFileHandle(n)).getFile();const o=parseScript(n,await f.text());o.file=n;await useScript(o);localStorage.lastScript=n}catch(e){toast('Could not read '+n)}};
 CLK['pasteBtn']=()=>B.set({paste:true});
@@ -199,6 +210,6 @@ CLK['updBtn']=async()=>{if(!latest)return checkUpdate(true);if(S.dirty&&!await B
 // ---------- boot ----------
 ui();(async()=>{try{const h=await idb('readonly','root');if(h){S.root=h;$('rootName').textContent=h.name;if(await h.queryPermission({mode:'readwrite'})=='granted')await loadList();else{toast('Click anywhere to re-allow folder access');addEventListener('pointerdown',async()=>{if(await perm(S.root))loadList()},{once:true,capture:true})}}}catch(e){}
  try{await openMic()}catch(e){toast('Microphone blocked: '+e.message)}ui();checkUpdate(false)})();
-window.__t={B,loadList,delScript,restoreScript,showBin,setEdit,saveScript,S,setRoot,useScript,startRec,stopRec,cut,undo,redoOp,crop,autoTrim,doExport,play,ui};
+window.__t={B,loadList,delScript,restoreScript,showBin,setEdit,saveScript,S,setRoot,useScript,startRec,stopRec,cut,undo,redoOp,crop,autoTrim,doExport,play,ui,readLocks,writeLocks};
 
 }

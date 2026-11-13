@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from "react"
-import { RefreshCw, Trash2, ArchiveRestore, ClipboardPaste, Pencil, Folder, Undo2, Scissors, Crop, Wand2, Timer, FilePlus2, Download, Play, Search, FileText } from "lucide-react"
+import { RefreshCw, Trash2, ArchiveRestore, ClipboardPaste, Pencil, Folder, Undo2, Scissors, Crop, Wand2, Timer, FilePlus2, Download, Play, Search, FileText, Lock, LockOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
@@ -138,25 +138,38 @@ function ScriptList() {
     {ui.scripts.length > 6 && <div className="relative mb-1.5"><Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input id="scriptFilter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter scripts" className="h-7 pl-7 text-xs" /></div>}
     <ScrollArea className="h-[min(40vh,380px)] rounded-md border bg-background/40">
       <div id="scriptList" role="listbox" aria-label="Scripts (Del deletes the selected script)" onKeyDown={onKey} className="p-1">
-        {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts yet. Choose your folder, then put .txt files in scripts\.</p>}
+        {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts from today. Lock a script to keep it in the list, or restore one from Deleted.</p>}
         {ui.scripts.length > 0 && !list.length && <p className="px-2 py-3 text-xs text-muted-foreground">No match.</p>}
-        {list.map((r) => {
-          const k = r.k
-          const sel = k === ui.cur
-          const when = fmtCreated(r.created)
-          return <div key={k} data-k={k} role="option" aria-selected={sel} tabIndex={sel || (!ui.cur && k === list[0]?.k) ? 0 : -1}
-            onClick={() => B.pick(k)}
-            className={"group/row flex min-h-10 cursor-pointer items-center gap-2 rounded-md py-1 pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
-            <FileText className="size-3.5 shrink-0 opacity-60" />
-            <span className="min-w-0 flex-1">
-              <span className="block truncate" title={name(k)}>{name(k)}</span>
-              {when && <span className="block truncate text-[10px] font-normal tracking-wide text-muted-foreground/80" title={when}>{when}</span>}
-            </span>
-            <button type="button" tabIndex={-1} aria-label={"Delete " + name(k)} title="Delete (moves it to scripts\_deleted)"
-              onClick={(e) => { e.stopPropagation(); B.del(k) }}
-              className="rowDel grid size-6 shrink-0 place-items-center rounded text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 hover:bg-destructive/20 hover:text-red-400"><Trash2 className="size-3.5" /></button>
-          </div>
-        })}
+        {(() => {
+          const locked = list.filter((r) => r.locked)
+          const today = list.filter((r) => !r.locked)
+          const row = (r: typeof list[number]) => {
+            const k = r.k
+            const sel = k === ui.cur
+            const when = fmtCreated(r.created)
+            return <div key={k} data-k={k} role="option" aria-selected={sel} tabIndex={sel || (!ui.cur && k === list[0]?.k) ? 0 : -1}
+              onClick={() => B.pick(k)}
+              className={"group/row flex min-h-10 cursor-pointer items-center gap-2 rounded-md py-1 pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
+              <FileText className="size-3.5 shrink-0 opacity-60" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate" title={name(k)}>{name(k)}</span>
+                {when && <span className="block truncate text-[10px] font-normal tracking-wide text-muted-foreground/80" title={when}>{when}</span>}
+              </span>
+              <button type="button" tabIndex={-1} aria-label={(r.locked ? "Unlock " : "Lock ") + name(k)} aria-pressed={!!r.locked}
+                title={r.locked ? "Unlock (older scripts leave the list unless locked)" : "Lock (keep this script in the list)"}
+                onClick={(e) => { e.stopPropagation(); B.toggleLock(k) }}
+                className={"rowLock grid size-6 shrink-0 place-items-center rounded hover:bg-accent " + (r.locked ? "text-amber-400 opacity-100" : "text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100")}>{r.locked ? <Lock className="size-3.5" /> : <LockOpen className="size-3.5" />}</button>
+              <button type="button" tabIndex={-1} aria-label={"Delete " + name(k)} title="Delete (moves it to scripts\_deleted)"
+                onClick={(e) => { e.stopPropagation(); B.del(k) }}
+                className="rowDel grid size-6 shrink-0 place-items-center rounded text-muted-foreground opacity-0 group-hover/row:opacity-100 group-focus-visible/row:opacity-100 hover:bg-destructive/20 hover:text-red-400"><Trash2 className="size-3.5" /></button>
+            </div>
+          }
+          const label = (text: string) => <p className="px-2 pt-1.5 pb-0.5 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">{text}</p>
+          return <>
+            {locked.length > 0 && <>{label("Locked")}{locked.map(row)}</>}
+            {today.length > 0 && <>{(locked.length > 0) && label("Today")}{today.map(row)}</>}
+          </>
+        })()}
       </div>
     </ScrollArea>
     <div className="mt-1.5 grid grid-cols-2 gap-1">

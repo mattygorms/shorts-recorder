@@ -1,10 +1,10 @@
 {
-  "version": "3.2.0",
+  "version": "3.3.0",
   "files": [
     {
       "path": "app/index.html",
       "url": "https://raw.githubusercontent.com/mattygorms/shorts-recorder/main/app/index.html",
-      "sha256": "25078ea1f1e3eeecb01eb995df6a8ed1cf6ccb340f9eae7cfd7d275d9cfeb812"
+      "sha256": "d547823720468f1a45eb0e7bbb62bbd977b68bf3812c158954d0e4607f081b8d"
     },
     {
       "path": "server.ps1",

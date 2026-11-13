@@ -2,7 +2,7 @@
 import { toast as sonner } from "sonner"
 type Ask = { title: string; desc: string; ok: string; resolve: (v: boolean) => void }
 export type Mic = { id: string; label: string }
-export type ScriptRow = { k: string; created: number | null }
+export type ScriptRow = { k: string; created: number | null; locked?: boolean }
 export type UIState = { help: boolean; paste: boolean; bin: string[] | null; ask: Ask | null; scripts: ScriptRow[]; cur: string; mics: Mic[]; mic: string }
 let st: UIState = { help: false, paste: false, bin: null, ask: null, scripts: [], cur: "", mics: [], mic: "" }
 const subs = new Set<() => void>()
@@ -22,5 +22,6 @@ export const B = {
   restore: async (_k: string) => {},
   pick: async (_k: string) => {},
   del: (_k?: string) => {},
+  toggleLock: async (_k: string) => {},
   pickMic: (_id: string) => {},
 }

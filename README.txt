@@ -1,4 +1,4 @@
-SHORTS RECORDER v3.2  -  record MattyGorm Shorts narration in one take
+SHORTS RECORDER v3.3  -  record MattyGorm Shorts narration in one take
 =====================================================================
 
 INSTALL / UPGRADE FROM v1 (one time)
@@ -53,6 +53,16 @@ EXPORT
   Drag <slug>.wav into Grok Bot.
 
 MANAGING SCRIPTS
+  The list shows today's scripts (America/New_York date from the created:
+  header, or the file time if there isn't one) plus any scripts you lock.
+  Click the lock icon on a row to keep that script in the list; locked
+  scripts stay at the top in a Locked group. Lock state is saved in
+  scripts\locked.json (not in the script file), so it survives the file
+  being rewritten.
+  On launch and on Refresh, older unlocked scripts are MOVED to
+  scripts\_deleted\, never erased. Restore brings one back and locks it
+  so it isn't moved again. Unlocking an older script also moves it to
+  Deleted (Undo in the popup for 6 s).
   Refresh button (next to the script menu) re-reads scripts\ without
   reloading; the list also refreshes when you switch back to the window.
   Trash button (or Del while the script menu is focused) deletes the script:
@@ -87,4 +97,4 @@ BUILDING THE APP (v3+, developers only)
   which server.ps1 serves and the updater downloads exactly as before.
     cd ui-src && npm ci && npm run build      (writes ../app/index.html)
     python3 make-manifest.py https://raw.githubusercontent.com/mattygorms/shorts-recorder/main
-  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).
+  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).
