@@ -1,4 +1,4 @@
-SHORTS RECORDER v3.3.3  -  record MattyGorm Shorts narration in one take
+SHORTS RECORDER v3.4.0  -  record MattyGorm Shorts narration in one take
 =====================================================================
 
 INSTALL / UPGRADE FROM v1 (one time)
@@ -53,8 +53,10 @@ EXPORT
   Drag <slug>.wav into Grok Bot.
 
 MANAGING SCRIPTS
-  The list shows today's scripts (America/New_York date from the created:
-  header, or the file time if there isn't one) plus any scripts you lock.
+  The list shows scripts created today or yesterday (America/New_York date
+  from the created: header, or the file time if there isn't one) plus any
+  scripts you lock. Each row shows the game (game: header) in amber above
+  the script's topic (title: header); the teleprompter shows the same.
   Click the lock icon on a row to keep that script in the list; locked
   scripts stay at the top in a Locked group. Lock state is saved in
   scripts\locked.json (not in the script file), so it survives the file
@@ -74,10 +76,12 @@ MANAGING SCRIPTS
   Your current take is kept. Exports/recordings are never touched.
 
 SCRIPT FILES (MattyGorm Shorts\scripts\)
-  .txt:  title: My Title / slug: my-slug / created: YYYY-MM-DDTHH:MM / --- / script text
+  .txt:  title: Topic / game: Game Name / slug: my-slug / created: YYYY-MM-DDTHH:MM / --- / script text
+         (game is optional; v3.4.0+ shows it above the topic. title is the
+          story's topic, not the game name.)
          (created is optional; the list sorts newest-first and shows the date.
           Without created, the file's last-modified time is used.)
-  .json: {"title": "...", "slug": "...", "script": "...", "created": "..."}
+  .json: {"title": "...", "game": "...", "slug": "...", "script": "...", "created": "..."}
 
 UPDATES
 - The version is shown top right. On launch the app checks for a newer version
@@ -100,4 +104,4 @@ BUILDING THE APP (v3+, developers only)
   which server.ps1 serves and the updater downloads exactly as before.
     cd ui-src && npm ci && npm run build      (writes ../app/index.html)
     python3 make-manifest.py https://raw.githubusercontent.com/mattygorms/shorts-recorder/main
-  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.3.3: script row titles truncate with an ellipsis so the lock and trash icons stay visible; the sidebar defaults to 420px and can be dragged wider (remembered). v3.3.2: Update badge is rendered from React state (so it no longer disappears on re-render) and the app re-checks for updates every 15 minutes. v3.3.1: lock and delete icons are always visible; locked scripts cannot be deleted until unlocked. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).
+  The version lives in ui-src/index.html as window.APP_VERSION='x.y.z'. v3.4.0: game: header shown as an amber label above the topic in the script list and the teleprompter (title: is the topic); the filter searches game and topic; the list keeps scripts created today or yesterday (ET) plus locked ones. v3.3.3: script row titles truncate with an ellipsis so the lock and trash icons stay visible; the sidebar defaults to 420px and can be dragged wider (remembered). v3.3.2: Update badge is rendered from React state (so it no longer disappears on re-render) and the app re-checks for updates every 15 minutes. v3.3.1: lock and delete icons are always visible; locked scripts cannot be deleted until unlocked. v3.3: list shows only today's scripts plus locked ones; older unlocked scripts move to scripts\_deleted\; lock state in scripts\locked.json; restore auto-locks. v3.2: script list sorted by created date (newest first) with the date shown on each row; created: header supported. v3.1: script list + mic picker are React (no native <select>).

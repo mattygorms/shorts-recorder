@@ -106,6 +106,7 @@ function Section({ label, children, right }: { label: string; children: React.Re
 }
 
 const name = (k: string) => k.replace(/\.(txt|json)$/i, "")
+const topic = (r: { k: string; title?: string | null }) => r.title || name(r.k)
 const fmtCreated = (ms: number | null) => {
   if (!ms) return ""
   const d = new Date(ms)
@@ -117,7 +118,7 @@ const fmtCreated = (ms: number | null) => {
 function ScriptList() {
   const ui = useUI()
   const [q, setQ] = useState("")
-  const list = ui.scripts.filter((r) => name(r.k).toLowerCase().includes(q.trim().toLowerCase()))
+  const list = ui.scripts.filter((r) => (name(r.k) + " " + (r.title || "") + " " + (r.game || "")).toLowerCase().includes(q.trim().toLowerCase()))
   const focusRow = (k: string) => requestAnimationFrame(() => (document.querySelector(`#scriptList [data-k="${CSS.escape(k)}"]`) as HTMLElement | null)?.focus())
   const onKey = (e: React.KeyboardEvent) => {
     if (!list.length) return
@@ -139,7 +140,7 @@ function ScriptList() {
     {ui.scripts.length > 6 && <div className="relative mb-1.5"><Search className="pointer-events-none absolute top-1/2 left-2 size-3.5 -translate-y-1/2 text-muted-foreground" /><Input id="scriptFilter" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Filter scripts" className="h-7 pl-7 text-xs" /></div>}
     <ScrollArea className="min-w-0 h-[min(40vh,380px)] rounded-md border bg-background/40">
       <div id="scriptList" role="listbox" aria-label="Scripts (Del deletes the selected script)" onKeyDown={onKey} className="min-w-0 w-full overflow-x-hidden p-1">
-        {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts from today. Lock a script to keep it in the list, or restore one from Deleted.</p>}
+        {!ui.scripts.length && <p className="px-2 py-3 text-xs text-muted-foreground">No scripts from today or yesterday. Lock a script to keep it in the list, or restore one from Deleted.</p>}
         {ui.scripts.length > 0 && !list.length && <p className="px-2 py-3 text-xs text-muted-foreground">No match.</p>}
         {(() => {
           const locked = list.filter((r) => r.locked)
@@ -153,7 +154,8 @@ function ScriptList() {
               className={"group/row flex min-h-10 w-full min-w-0 cursor-pointer items-center gap-1 overflow-hidden rounded-md py-1 pr-1 pl-2 text-sm outline-none select-none hover:bg-accent/60 focus-visible:ring-2 focus-visible:ring-ring/60 " + (sel ? "sel bg-accent font-medium text-accent-foreground" : "text-muted-foreground")}>
               <FileText className="size-3.5 shrink-0 opacity-60" />
               <span className="min-w-0 flex-1 overflow-hidden">
-                <span className="block truncate" title={name(k)}>{name(k)}</span>
+                {r.game && <span className="rowGame block truncate text-[10px] font-semibold uppercase tracking-wider text-amber-400" title={r.game}>{r.game}</span>}
+                <span className="rowTopic block truncate" title={topic(r) + " — " + name(k)}>{topic(r)}</span>
                 {when && <span className="block truncate text-[10px] font-normal tracking-wide text-muted-foreground/80" title={when}>{when}</span>}
               </span>
               <button type="button" tabIndex={-1} aria-label={(r.locked ? "Unlock " : "Lock ") + name(k)} aria-pressed={!!r.locked}
@@ -170,7 +172,7 @@ function ScriptList() {
           const label = (text: string) => <p className="px-2 pt-1.5 pb-0.5 text-[10px] font-medium tracking-wider text-muted-foreground uppercase">{text}</p>
           return <>
             {locked.length > 0 && <>{label("Locked")}{locked.map(row)}</>}
-            {today.length > 0 && <>{(locked.length > 0) && label("Today")}{today.map(row)}</>}
+            {today.length > 0 && <>{(locked.length > 0) && label("Recent")}{today.map(row)}</>}
           </>
         })()}
       </div>

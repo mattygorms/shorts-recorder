@@ -1,4 +1,4 @@
-// Pure helpers for the scripts list: today's-only filter, lock file I/O, sort.
+// Pure helpers for the scripts list: today+yesterday filter, lock file I/O, sort.
 // America/New_York calendar date is the source of truth, matching the rest of the app.
 
 export const LOCK_FILE = 'locked.json'
@@ -14,6 +14,13 @@ export function nyDay(ms) {
 export function isTodayNY(ms, now = Date.now()) {
   if (ms == null || isNaN(ms)) return false
   return nyDay(ms) === nyDay(now)
+}
+
+// Created today or yesterday (America/New_York calendar days). Scripts written
+// the evening before still show up the next morning.
+export function isRecentNY(ms, now = Date.now()) {
+  if (ms == null || isNaN(ms)) return false
+  return nyDay(ms) >= nyDay(now - 864e5)
 }
 
 // Parse a created: header (YYYY-MM-DD or YYYY-MM-DDTHH:MM[:SS]) to a timestamp.
@@ -41,7 +48,7 @@ export function isLockedName(locks, k) {
 
 export function shouldKeep(row, locks, now = Date.now()) {
   if (row && isLockedName(locks, row.k)) return true
-  return isTodayNY(row && row.created, now)
+  return isRecentNY(row && row.created, now)
 }
 
 // Locked scripts cannot be deleted (trash or keyboard) until unlocked.

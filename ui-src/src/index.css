@@ -131,7 +131,7 @@
 body{--wave:#7c93ff;--rec:#ef4444;--ok:#22c55e;overflow:hidden}
 html{color-scheme:dark}
 #pin .t{display:flex;align-items:center;gap:12px;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted-foreground);font-weight:600;margin-bottom:22px}
-#pin .sv{font-size:11px;letter-spacing:.02em;text-transform:none;font-weight:500}#pin .sv.ok{color:var(--ok)}
+#pin .t{flex-wrap:wrap}#pin .gm{color:#fbbf24;border:1px solid color-mix(in oklab,#fbbf24 45%,transparent);border-radius:6px;padding:3px 9px;font-size:12px;letter-spacing:.1em}#pin .tp{color:var(--foreground);text-transform:none;letter-spacing:0;font-size:17px;font-weight:600}#pin .sv{font-size:11px;letter-spacing:.02em;text-transform:none;font-weight:500}#pin .sv.ok{color:var(--ok)}
 #pin p{font-size:26px;line-height:1.5;margin:0 0 22px;color:var(--foreground);font-weight:400}
 #pin .empty{margin-top:18vh;text-align:center;color:var(--muted-foreground);font-size:15px;line-height:1.7}
 #ed{outline:none;border-radius:12px;margin:0 -18px;padding:6px 18px;transition:background .15s,box-shadow .15s}

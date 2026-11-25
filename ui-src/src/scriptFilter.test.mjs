@@ -1,6 +1,6 @@
 import { strict as assert } from 'node:assert'
 import {
-  isLockFile, nyDay, isTodayNY, parseCreatedMs, isLockedName, shouldKeep,
+  isLockFile, nyDay, isTodayNY, isRecentNY, parseCreatedMs, isLockedName, shouldKeep,
   parseLocks, serializeLocks, clearLock, sortVisible, canDelete, LOCK_FILE
 } from './scriptFilter.js'
 
@@ -42,7 +42,12 @@ assert.equal(isLockedName(locks, 'Trollheim-Gnomes-Minecraft-Devs.txt'), true)
 assert.equal(isLockedName(locks, 'other.txt'), false)
 assert.equal(isLockedName({}, 'trollheim-gnomes-minecraft-devs.txt'), false)
 
-assert.equal(shouldKeep({ k: 'old.txt', created: parseCreatedMs('2026-11-12T13:17:00') }, {}, NOW), false)
+// today + yesterday (ET) are kept; two days back is not
+assert.equal(isRecentNY(parseCreatedMs('2026-11-12T00:05:00'), NOW), true)
+assert.equal(isRecentNY(parseCreatedMs('2026-11-11T23:59:00'), NOW), false)
+assert.equal(isRecentNY(null, NOW), false)
+assert.equal(shouldKeep({ k: 'yday.txt', created: parseCreatedMs('2026-11-12T13:17:00') }, {}, NOW), true)
+assert.equal(shouldKeep({ k: 'old.txt', created: parseCreatedMs('2026-11-11T13:17:00') }, {}, NOW), false)
 assert.equal(shouldKeep({ k: 'old.txt', created: parseCreatedMs('2026-11-12T13:17:00') }, { 'old.txt': true }, NOW), true)
 assert.equal(shouldKeep({ k: 'today.txt', created: parseCreatedMs('2026-11-13T09:32:00') }, {}, NOW), true)
 assert.equal(shouldKeep({ k: 'nodate.txt', created: null }, {}, NOW), false)
@@ -83,7 +88,7 @@ const all = [
   { k: 'harbor-rust-fallout-mad-max-survival.txt', created: parseCreatedMs('2026-11-13T09:32:00') },
   { k: 'trollheim-gnomes-minecraft-devs.txt', created: parseCreatedMs('2026-11-12T13:18:00') },
   { k: 'stormforge-tornadoes-hunt-you.txt', created: parseCreatedMs('2026-11-11T09:26:30') },
-  { k: 'growtopia-leaving-steam-december-1.txt', created: parseCreatedMs('2026-11-12T05:50:00') },
+  { k: 'growtopia-leaving-steam-december-1.txt', created: parseCreatedMs('2026-11-11T05:50:00') },
 ]
 const vis = visible(all, {
   'trollheim-gnomes-minecraft-devs.txt': true,
